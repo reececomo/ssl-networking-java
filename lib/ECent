@@ -1,0 +1,16 @@
+package lib;
+
+public class ECent {
+	public Integer seqNo;
+	public String hash;
+	
+	public ECent ( String rawecentdata ) {
+		try {
+			this.seqNo = Integer.parseInt(rawecentdata.split(":")[0]);
+			this.hash = rawecentdata.split(":")[1];
+		} catch (Exception error) {
+			System.out.println("Was not a valid eCent");
+			System.exit(-1);
+		}
+	}
+}
