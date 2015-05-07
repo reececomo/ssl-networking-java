@@ -11,59 +11,42 @@ public class Collector
 	private final int dirPort = 10000;
 	private final int bankPort = 9999;
 
-	private final String BANK_REQ = "REQ";		// bank withdrawl request flag
-	private final String BANK_WIT = "WITH";		// bank withdrawl accept flag (bank sends this with money)
-	private final String DIR_INIT = "INIT";		// director init flag
-	private final String EXAM_REQ = "DOIT";		// analysis request flag
-
 	private String outPacket;
 	private String inPacket;
 
 	private boolean ONLINE = false;			// boolean for determining if analyst availiable 
-	private File ecentFile;					// file for holding ecents
+	private ECentWallet eCentWallet;					// file for holding ecents
 	
 	
 	/**
 	 * Collector
 	 */
-	public static void main(String[] args) throws IOException{
+	public static void main(String[] args) throws IOException {
 		Collector myCol = new Collector();
 	}
 	
 	public Collector() throws IOException {
-		
-		Message myMessage = new Message("BABEhello there slugger");
-		
-		System.out.println(myMessage.content);
-		System.out.println(myMessage.getFlag().equals("BABE"));
-		System.out.println(myMessage.asData());
-
 		System.setProperty("javax.net.ssl.trustStore", "cits3002_01Keystore");
-    		System.setProperty("javax.net.ssl.trustStorePassword", "cits3002");
+    	System.setProperty("javax.net.ssl.trustStorePassword", "cits3002");
 		
 		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
-		outPacket = BANK_REQ + ";10000\n";
-
-		//buyMoney();
+		outPacket = MessageFlag.BANK_REQ + ";10000\n";
 
 		// set up packet in the form FLAG;MSG (ie REQ;DETAILS)
-		outPacket = DIR_INIT + ";DATA\n";
-
+		outPacket = MessageFlag.DIR_INIT + ";DATA\n";
+		
+		// Instantiate eCentWallet
+		eCentWallet = new ECentWallet();
+		
+		// If empty wallet, generate new string
+		if(eCentWallet.isEmpty()){
+			String input = "1:uhaubufd\n2:hsuifhusigbuis\n3:920u4389u2s";
+			eCentWallet.add(input.split("\n"));
+		}
+		
+		String myECent = eCentWallet.removeECent(); // Take an ECent out
 
 		//ONLINE = initDir();
-		
-		//initialize ecent file to current directory
-		ecentFile = new File("ecents.txt");
-		if (ecentFile.exists()){
-			System.out.println("File already exists");
-		}
-		else{
-			System.out.println("File doesn't exist.\nCreating eCent file...");
-			FileWriter fw = new FileWriter(ecentFile.getAbsoluteFile());
-			BufferedWriter bw= new BufferedWriter(fw);
-			bw.write("");
-			bw.close();
-		}
 
 		// collects an array of randomly generated ints for basic analysis (perhaps an average)
 		int[] data = collect();
