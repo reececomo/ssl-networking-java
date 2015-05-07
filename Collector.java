@@ -1,4 +1,5 @@
 import java.io.*;
+import lib.*;
 import java.util.Random;
 
 import javax.net.*;
@@ -7,25 +8,35 @@ import javax.net.ssl.*;
 
 public class Collector
 {
-	private static final int dirPort = 10000;
-	private static final int bankPort = 9999;
+	private final int dirPort = 10000;
+	private final int bankPort = 9999;
 
-	private static final String BANK_REQ = "REQ";		// bank withdrawl request flag
-	private static final String BANK_WIT = "WITH";		// bank withdrawl accept flag (bank sends this with money)
-	private static final String DIR_INIT = "INIT";		// director init flag
-	private static final String EXAM_REQ = "DOIT";		// analysis request flag
+	private final String BANK_REQ = "REQ";		// bank withdrawl request flag
+	private final String BANK_WIT = "WITH";		// bank withdrawl accept flag (bank sends this with money)
+	private final String DIR_INIT = "INIT";		// director init flag
+	private final String EXAM_REQ = "DOIT";		// analysis request flag
 
-	private static String outPacket;
-	private static String inPacket;
+	private String outPacket;
+	private String inPacket;
 
-	private static boolean ONLINE = false;			// boolean for determining if analyst availiable 
-	private static File ecentFile;					// file for holding ecents
+	private boolean ONLINE = false;			// boolean for determining if analyst availiable 
+	private File ecentFile;					// file for holding ecents
 	
 	
 	/**
 	 * Collector
 	 */
 	public static void main(String[] args) throws IOException{
+		Collector myCol = new Collector();
+	}
+	
+	public Collector() throws IOException {
+		
+		Message myMessage = new Message("BABEhello there slugger");
+		
+		System.out.println(myMessage.content);
+		System.out.println(myMessage.getFlag().equals("BABE"));
+		System.out.println(myMessage.asData());
 
 		System.setProperty("javax.net.ssl.trustStore", "cits3002_01Keystore");
     		System.setProperty("javax.net.ssl.trustStorePassword", "cits3002");
@@ -33,13 +44,13 @@ public class Collector
 		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
 		outPacket = BANK_REQ + ";10000\n";
 
-		buyMoney();
+		//buyMoney();
 
 		// set up packet in the form FLAG;MSG (ie REQ;DETAILS)
 		outPacket = DIR_INIT + ";DATA\n";
 
 
-		ONLINE = initDir();
+		//ONLINE = initDir();
 		
 		//initialize ecent file to current directory
 		ecentFile = new File("ecents.txt");
@@ -58,7 +69,7 @@ public class Collector
 		int[] data = collect();
 	}
 
-	private static void buyMoney() throws IOException{
+	private void buyMoney() throws IOException{
 		try{
 			// set up Socket to bank
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
@@ -95,7 +106,7 @@ public class Collector
 	}
 	
 	// Returns TRUE iff director can handle data analysis (has analyst(s) availiable)
-	private static boolean initDir() throws IOException{
+	private boolean initDir() throws IOException{
 		try{
 			// set up Socket to bank
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
@@ -135,7 +146,7 @@ public class Collector
 
 		return false;
 	}
-	private static int[] collect(){
+	private int[] collect(){
 		int[] array= new int[10];
 		Random rand = new Random();
 		for (int i=0; i<10; i++){
