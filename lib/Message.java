@@ -8,9 +8,9 @@ package lib;
  
 public class Message {
 	
-	private enum Flag { NONE, DEC };
-    private Flag flag = Flag.NONE; // flag cannot be changed
-    public String data; // contents can be referenced Message.content
+	private enum Flag { NONE, INIC, INIA, DOIT, WIT, DEP };
+	private Flag flag; 			// flag cannot be changed
+	public String data; 			// contents can be referenced Message.content
     
   public Message(String rawMessage){
 	  try {
