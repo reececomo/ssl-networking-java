@@ -7,14 +7,17 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
-
-
+import java.util.HashSet;
 
 /**
- * Container object for Collector's ECents
+ * Abstract container class
+ *    > Syncronises volatile and non-volatile
+ *    >  memory for the String 'eCent's.
  * 
- * @author APA and RC
+ * @date May 7th 2015
+ * 
+ * @author Alexander Popoff-Asotoff
+ * @author Reece Notargiacomo
  */
 public class ECentWallet {
 	
