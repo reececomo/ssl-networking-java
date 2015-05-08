@@ -12,6 +12,7 @@ public class DirectorClient implements Runnable {
 	private SSLSocket sslsocket;
 	private enum Type { UNKNOWN, ANALYST, COLLECTOR };
 	private Type type;
+	public PrintWriter writer;
 
 	public DirectorClient(SSLSocket socket) {
 		this.sslsocket = socket;
@@ -19,9 +20,8 @@ public class DirectorClient implements Runnable {
 	}
 	
 	public void run() {
-		System.out.println("New connected!");
 		BufferedReader reader = null;
-		PrintWriter writer = null;
+		writer = null;
 		try {
 			reader = new BufferedReader(new InputStreamReader( sslsocket.getInputStream() ));
 			writer = new PrintWriter(sslsocket.getOutputStream(), true);
@@ -33,7 +33,9 @@ public class DirectorClient implements Runnable {
 				
 				if (input == null)
 					break;
-				String response = processMessage( new Message(input) );
+
+				Message msg = new Message( input );
+				String response = processMessage( msg );
 				
 				if(response!=null)
 					writer.println(response);
@@ -52,7 +54,6 @@ public class DirectorClient implements Runnable {
 	}
 	
 	private String processMessage ( Message msg ) {
-		System.out.println("New connected!");
 		switch(this.type) {
 			case ANALYST:
 				
@@ -62,7 +63,6 @@ public class DirectorClient implements Runnable {
 				break;
 				
 			default:
-				System.out.println("New connected!");
 				return registerClient(msg);
 		}
 		
@@ -71,7 +71,7 @@ public class DirectorClient implements Runnable {
 	
 	private String registerClient( Message msg ) {
 		if(msg.getFlag() == "DEC")
-			if (msg.data == "analyst")
+			if  ( msg.data.equals("analyst") )
 				this.type = Type.ANALYST;
 			else
 				this.type = Type.COLLECTOR;
