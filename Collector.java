@@ -39,8 +39,8 @@ public class Collector
 		eCentWallet = new ECentWallet();
 		
 		// If empty wallet, generate new string
-		if(eCentWallet.isEmpty()){
-			String input = "1:uhaubufd\n2:hsuifhusigbuis\n3:920u4389u2s";
+		if (eCentWallet.isEmpty()) {
+			String input = "uhau532y43ujh5bufd\nhsuifdasffhusigbuis\nasf35920u4389u2s";
 			eCentWallet.add(input.split("\n"));
 		}
 		
