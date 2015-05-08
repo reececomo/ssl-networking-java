@@ -1,17 +1,24 @@
-// Kill me now
 import java.io.*;
 import lib.*;
+import java.security.*;
+import java.util.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import javax.net.*;
-import javax.net.ssl;
+import javax.net.ssl.*;
 
-/* The analysistsstissys class for analsaydasdjhaising the data
- * 
+/**
+ * Analyst Class for analysing data
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @version 5.9.15
  */
 public class Analyst {
 
-	private final int dirPort = 10000;
+	private final int dirPort = 9998;
 	private final int bankPort = 9999;
+	private int myPort;
+	private static SSLServerSocket sslserversocket = null;
 
     // A_INIT FLAG // of messageflag INIA
 
@@ -27,143 +34,152 @@ public class Analyst {
 	public Analyst() throws IOException {
 
 		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
+		SSLHandler.declareServerCert("cits3002_01Keystore","cits3002");
 		
-		// send a initililisation flag to director + registration
-		outPacket = MessageFlag.INIA + ";DATA\n";
-		// receive data analysis request flag from director
-		// inPacket = MessageFlag.DOIT + ";DATA\n"; // eCent;DATA
-		// send deposit request flag to bank
-		outPacket = MessageFlag.DEPOSIT + eCent;
-		// "deposit allowed/not allowed" flag from Bank;
-		// inPacket = MessageFlag.ACK;
-		// send data analysis flag to director;
-		outPacket = MessageFlag.ANALYSE_SHIT;
-
-		Message msg = new Message(packet);
-
-		initDir();
-		// sit here and listen for director
 		getMoney();
 
 
-	}
-
-	// deposit eCents
-	private boolean depositMoney(Ecent eCent) throws IOException {
-		// set up Socket to bank
-		SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-		SSLSocket sslSocket = (SSLSocket)sslsf.createSocket("localhost", bankPort); 
-
-		// get bank confirmation
-		InputStream inputstream = sslsocket.getInputStream();
-		InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-		// Create a buffered reader (chars -> strings) (BUFFEREDREADER NEEDS NEWLINE ENDED STRINGS TO WORK)
-		BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
-
-		System.out.println("Sending eCent deposit request...");
-		// prepare output stream (strings -> bytes)
-		// in order to send the ecents to bank 
-		OutputStream outputStream = sslsocket.getOutputStream();
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream); 	
-		
-		outputStreamWriter.write(outPacket);
-		outputStreamWriter.flush();
-
-		if(inPacket.substring(4,inPacket.length()).equals("TRUE"))
-			return true; // successful deposit
-		else return false;
-	
 	}
 
 	// starting getting data (ecent included) from Director(s)
 	private void getMoney() throws IOException {
 		
 		try {
+
 			// Use the SSLSSFactory to create a SSLServerSocket to create a SSLSocket
-			SSLServerSocketFactory sslServerSocketFactory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-			sslServerSocket = (SSLServerSocket)sslServerSocketFactory.createServerSocket(9997);
-			System.out.println("Analyst wants money...(analyst now online)");
+			SSLServerSocketFactory sslserversocketfactory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+			sslserversocket = (SSLServerSocket)sslserversocketfactory.createServerSocket(0); 		// get any avail port (default 0)
+
+			myPort = sslserversocket.getLocalPort();							// save this port for laterez
+
+			initDir();			// init with Director once (after setting up server so you can send him your port :) )
 
 		} catch (IOException e) {
-            System.out.println("Error listening on port 9997 or listening for a connection");
+         		System.out.println("Error listening on port 9997 or listening for a connection");
 			System.out.println(e.getMessage());
-        }
-
+	        }
 		while(true){
 			
 			SSLSocket sslSocket = null;
 			try {
-				sslSocket = (SSLSocket)sslServerSocket.accept();
+				System.out.println("Waiting for data to analyse...");
+				sslSocket = (SSLSocket)sslserversocket.accept();
 				System.out.println("Director connected. ");
+
+				
 
 			} catch (IOException e) {
 				System.out.println("Error connecting to director");
 				System.out.println(e.getMessage());
 			}
+
+			InputStream inputstream = sslSocket.getInputStream();
+			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
+			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);		
+
+			OutputStream outputstream = sslSocket.getOutputStream();
+			OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
+       	
+			inPacket = bufferedreader.readLine();
+			
+			// String decryption = decryptPacket(inPacket);		//decrypt packet here
+
+			String data = inPacket.split(";")[0];
+			String eCent = inPacket.split(";")[1];
+
+			if(depositMoney(eCent)){
+
+				// ANALYSE DATA
+
+				outPacket = "SOMEGIBERISHDATARESULTALLGOODBRU\n";	// RETURN RESULT
+			}else{
+				outPacket = "FALSEINVALID\n";		// ECENT NOT VALID
+			}
+
+			System.out.println("Result returned to Director = " + outPacket);
+			outputstreamwriter.write(outPacket);
+			outputstreamwriter.flush();
+			
+			// ANALYST IS DONE LOOP BACK AND LISTEN FOR SOMETHING ELSE
+
 		}
-
-		InputStream inputStream = sslSocket.getInputStream();
-		InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-
-		// Create a buffered reader (chars -> strings) 
-		// (NOTE: BufferedReader needs need a NEWLINE ended message to readLine() properly)
-		BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-		// Create output stream
-		OutputStream outputStream = sslSocket.getOutputStream();
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
-       
-        String packet = MessageFlag.A_INIT + DATA;
-        Message msg = new Message();
-        // send packet to director
-        outputStreamWriter.write(packet);
-        if (msg.getFlag() == DATA)
-
-        inPacket = bufferedReader.readLine();
-    	// extract the data from packet
-		data = msg(inPacket).data;
-        // decrypt the data..
-        // decryptData(data);
         
 	}
 
-	// Returns TRUE iff director can handle data analysis (has analyst(s) availiable)
-	private boolean initDir() throws IOException{
+	// Send data type to Director
+	private void initDir() throws IOException{
 		try{
 			// set up socket to Dir
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
 			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", dirPort);
-			// for incoming response from director	
-			InputStream inputStream = sslsocket.getInputStream();
-			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-			// Create a buffered reader (chars -> strings) (BUFFEREDREADER NEEDS NEWLINE ENDED STRINGS TO WORK)
-			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
 
-			// (FOR SENDING REQUEST) -
 			// prepare output stream (strings -> bytes)
 			OutputStream outputstream = sslsocket.getOutputStream();
-            OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
+            		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
+	
+			System.out.println("Sending Director Initialization..");
 
-			System.out.println("Sending Director Initialization Request..");
+			// Analyst INIT packet = [ INITFLAG  :  DATA TYPE  ;  ADDRESS  ;  PORT ]	address/port analyst is listening on
+			outPacket = MessageFlag.A_INIT + ":" + "DATA" + ";" + getIPAddress() + ";" + Integer.toString(myPort) + "\n";
 
-			// write packet to outputstreamwriter (Note: bufferedwriter isn't needed since we don't need to buffer system input)
 			outputstreamwriter.write(outPacket);
 			outputstreamwriter.flush();
 
-			inPacket = bufferedreader.readLine(); 
-			System.out.println(inPacket);
-			if(inPacket.substring(4,inPacket.length()).equals("TRUE"))
-				return true;
-			else return false;
+			sslsocket.close();
 
 		}catch (IOException e)
 		{
 			System.err.println("Could not achieve IO connection");
 			System.exit(1);
 		}
-		
+	}
 
+	public String getIPAddress() {
+		try {
+			//Get IP Address
+			return InetAddress.getLocalHost().getHostAddress();
+		} catch (UnknownHostException e) {
+			return "UnknownHost";
+		}
+	}
+
+
+	// deposit eCent in bank
+	private boolean depositMoney(String eCent) throws IOException {
+		try{
+			// set up Socket to bank
+			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+			SSLSocket sslSocket = (SSLSocket)sslsf.createSocket("localhost", bankPort); 
+
+			InputStream inputstream = sslSocket.getInputStream();
+			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
+			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
+
+			System.out.println("Sending eCent deposit request...");
+
+			OutputStream outputStream = sslSocket.getOutputStream();
+			OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream); 	
+		
+			outPacket = MessageFlag.BANK_DEP + ":" + eCent + "\n";
+
+			outputStreamWriter.write(outPacket);		// send ecent to bank
+			outputStreamWriter.flush();
+
+			inPacket = bufferedreader.readLine();		// recieve confirmation
+
+			System.out.println(inPacket);
+
+			if(inPacket.equals("TRUE"))
+				return true; 	// successful deposit
+			else return false;
+
+		}catch (IOException e) {
+			System.err.println("Could not achieve IO connection");
+			System.exit(1);
+		}
 		return false;
 	}
+
 /** TO DO	
 	// decrypt the given ecent
 	// and return it to be deposited

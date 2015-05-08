@@ -5,10 +5,15 @@ import java.util.Random;
 import javax.net.*;
 import javax.net.ssl.*;
 
+/**
+ * Collector Class
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @version 5.9.15
+ */
 
 public class Collector
 {
-	private final int dirPort = 10000;
+	private final int dirPort = 9998;
 	private final int bankPort = 9999;
 
 	private String outPacket;
@@ -27,27 +32,28 @@ public class Collector
 	
 	public Collector() throws IOException {
 		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
-		
 
-
-		// set up packet in the form FLAG;MSG (ie REQ;DETAILS)
-		outPacket = MessageFlag.DIR_INIT + ";DATA\n";
-		
 		// Instantiate eCentWallet
 		eCentWallet = new ECentWallet();
 		
 		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
-		outPacket = MessageFlag.BANK_REQ + ";100\n";
+		outPacket = MessageFlag.BANK_WIT + ":100\n";
 
-		System.out.println(outPacket);
-
-		// If empty wallet, generate new string
+		// If empty wallet, buy money
 		if (eCentWallet.isEmpty()) buyMoney();
 		
 		//String myECent = eCentWallet.remove(); // Take an ECent out
 
 		System.out.println("You have " + eCentWallet.getBalance() + " eCents in your wallet!");
+
+		// set up packet in the form FLAG;MSG (ie REQ;DETAILS)
+		outPacket = MessageFlag.C_INIT + ":DATA\n";
+
+	//	System.out.println(outPacket);
+
 		ONLINE = initDir();
+
+		if(ONLINE) sendData();
 
 
 		// collects an array of randomly generated ints for basic analysis (perhaps an average)
@@ -82,16 +88,12 @@ public class Collector
 
 			int index = 0;
 			while((inPacket = bufferedreader.readLine()) != null){
-				System.out.println(index + " = " + inPacket);	
+			//	System.out.println(index + " = " + inPacket);	
 				eCentBuffer[index] = inPacket;
 				index++;
 			}
 
-			System.out.println("GETTING HERE");
-
 			eCentWallet.add(eCentBuffer);
-
-
 
 		}catch (IOException e)
 		{
@@ -103,19 +105,13 @@ public class Collector
 	// Returns TRUE iff director can handle data analysis (has analyst(s) availiable)
 	private boolean initDir() throws IOException{
 		try{
-			// set up Socket to bank
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
 			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", dirPort);
 
-			// (FOR RECIEVING MONEY) -
-			// Create an input stream (FOR RECIEVING MONEY) (bytes -> chars)
 			InputStream inputstream = sslsocket.getInputStream();
 			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-			// Create a buffered reader (chars -> strings) (BUFFEREDREADER NEEDS NEWLINE ENDED STRINGS TO WORK)
 			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
 
-			// (FOR SENDING REQUEST) -
-			// prepare output stream (strings -> bytes)
 			OutputStream outputstream = sslsocket.getOutputStream();
             		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
 
@@ -125,10 +121,9 @@ public class Collector
 			outputstreamwriter.write(outPacket);
 			outputstreamwriter.flush();
 
-			inPacket = bufferedreader.readLine(); 
-			System.out.println(inPacket);			// print money recieved (this would IO pipe into file)
+			inPacket = bufferedreader.readLine(); 			
 
-			if(inPacket.substring(4,inPacket.length()).equals("TRUE"))
+			if(inPacket.equals("TRUE"))
 				return true;
 			else return false;
 
@@ -137,10 +132,41 @@ public class Collector
 			System.err.println("Could not achieve IO connection");
 			System.exit(1);
 		}
-		
-
 		return false;
 	}
+
+	private void sendData() throws IOException{
+		try{
+			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", dirPort);
+
+			InputStream inputstream = sslsocket.getInputStream();
+			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
+			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
+
+			OutputStream outputstream = sslsocket.getOutputStream();
+            		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
+
+			// send data packet = [ FLAG  :  DATA TYPE  ;  DATA  ;  ECENT  ]
+			outPacket = MessageFlag.EXAM_REQ + ":" + "DATA" + ";blahblahblah;" + eCentWallet.remove() + "\n";
+
+			System.out.print("THE PACKET I'M SENDING FOR ANALYSIS IS:\n" + outPacket);
+
+			outputstreamwriter.write(outPacket);			// send request to director (FLAG:TYPE;DATA;ECENT)
+			outputstreamwriter.flush();
+
+			inPacket = bufferedreader.readLine();			// read result returned by director
+			System.out.println("RESULT I PAID FOR: " + inPacket);
+
+			sslsocket.close();
+		}
+		catch (IOException e){
+			System.err.println("Could not achieve IO connection");
+			System.exit(1);
+		}
+
+	}
+
 	private int[] collect(){
 		int[] array= new int[10];
 		Random rand = new Random();

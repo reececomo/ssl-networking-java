@@ -2,6 +2,14 @@ import java.io.*;
 import javax.net.ssl.*;
 import java.security.*;
 import java.util.*;
+import lib.*;
+
+/**
+ * Bank Class
+ * For handling Ecent generation, checking and depositing
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @version 5.9.15
+ */
 
 public class Bank
 {
@@ -31,7 +39,7 @@ public class Bank
     		SecureRandom random = new SecureRandom();
     		validationKey= random.nextInt(32);
 
-		bankStore = new HashSet<String>();
+		bankStore = new HashSet<String>();		// Set of all valid ecent hashes
 
 		try {
 			// Use the SSLSSFactory to create a SSLServerSocket to create a SSLSocket
@@ -49,7 +57,6 @@ public class Bank
 			SSLSocket sslsocket = null;
 			try {
 				sslsocket = (SSLSocket)sslserversocket.accept();
-				System.out.println("Client Connected");
 
 			}catch (IOException e){
 				System.out.println("Error connecting to client");
@@ -70,27 +77,21 @@ public class Bank
 
 		public void run() {
 			try {
-
-				// Create an input stream (bytes -> chars)
 				InputStream inputstream = sslsocket.getInputStream();
 				InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
 
-				// Create a buffered reader (chars -> strings) (NOTE: BufferedReader needs need a NEWLINE ended message to readLine() properly)
 				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
 
-				// Create output stream
 				OutputStream outputstream = sslsocket.getOutputStream();
             			OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
 		
-				System.out.println("Thread Started");
-		
-				String packet = bufferedreader.readLine();
+				String packet = bufferedreader.readLine();			// get message from client
+				Message msg = new Message(packet);				
 
-				String flag = packet.substring(0,3);
+				if(msg.getFlag().equals(MessageFlag.BANK_WIT)){			// WITHDRAWL FLAG HANDLING
 
-				if(flag.equals("REQ")){
-
-					String amount = packet.substring(4, packet.length());
+					System.out.println("Collector connected\nWithdrawing money..");
+					String amount = msg.data;
 
 					// Ecent encryption
 					int am = Integer.parseInt(amount);
@@ -101,13 +102,19 @@ public class Bank
 						outputstreamwriter.write(ecent);
 						outputstreamwriter.flush();
 					}
-					
-					
 					System.out.println("Money Sent");
 
-				}else if(flag.equals("DEP")){
+				}else if(msg.getFlag().equals(MessageFlag.BANK_DEP)){		// DEPOSIT FLAG HANDLING
+					
+					System.out.println("Analyst connected\nDepositing money..");
 
-					// Handle deposit/Ecent checking
+					//Check if Ecent is in valid Ecent set
+					if(bankStore.contains(msg.data)) outputstreamwriter.write("TRUE\n");	
+					else outputstreamwriter.write("FALSE\n");
+
+					outputstreamwriter.flush();
+					System.out.println("Money Deposited");
+				
 				}
 
 				sslsocket.close();
@@ -125,7 +132,6 @@ public class Bank
 
 		return getSHA256Hash(Integer.toString(sequence++));
 	}
-
 
 	private static String getSHA256Hash(String passwordToHash){
 
@@ -145,11 +151,10 @@ public class Bank
 		{
 			e.printStackTrace();
 		}
-		bankStore.add(generatedPassword);
-		return generatedPassword;
+		bankStore.add(generatedPassword);		// add ecent to valid set
+		return generatedPassword;			// return ecent
 	}
         
-	//Add salt
 	private static String getSalt() throws NoSuchAlgorithmException
 	{
 		SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
