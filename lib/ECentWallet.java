@@ -64,9 +64,12 @@ public class ECentWallet {
 		return eCents.size() == 0;
 	}
 	
+	public int getBalance() {
+		return eCents.size();
+	}
+	
 	private void loadWallet() throws IOException {
 		FileReader fr;
-    		String rawLine;
     	
 		try {
 			// Open file
@@ -74,13 +77,14 @@ public class ECentWallet {
 			BufferedReader br = new BufferedReader(fr);
 			
 			// Load eCents
-		    	while ((rawLine = br.readLine()) != null)
-		    		this.add( new ECent(rawLine), false);
-		    		
-		    	// Close file
-		    	fr.close();
-		    	
-		    	System.out.println("Wallet loaded!");
+    		String eCent;
+	    	while ((eCent = br.readLine()) != null)
+	    		this.add( eCent, false);
+	    		
+	    	// Close file
+	    	fr.close();
+	    	
+	    	System.out.println("Wallet loaded!");
 	    	
 		} catch (FileNotFoundException e) {
 			System.out.println("No wallet found, creating new wallet.");
