@@ -8,28 +8,31 @@ package lib;
  
 public class Message {
 	
-    private String flag; // flag cannot be changed
-    public String content; // contents can be referenced Message.content
+	private enum Flag { NONE, DEC };
+    private Flag flag = Flag.NONE; // flag cannot be changed
+    public String data; // contents can be referenced Message.content
     
   public Message(String rawMessage){
-      if(rawMessage.length() <= 4)
-          this.flag = "NONE";
-      else {
-          this.flag = rawMessage.substring(0,4);
-          this.content = rawMessage.substring(4);
-      }
+	  try {
+	      this.flag = Flag.valueOf(rawMessage.split(":")[0]);
+	      this.data = rawMessage.split(":")[1];
+	      
+	  } catch (Exception e) {
+		  
+		  System.err.println("Invalid message format: " + e);
+	  }
   }
   
   public Message(String flag, String message) {
-	  this(flag+message);
+	  this(flag+":"+message);
   }
  
   public String getFlag() {
-      return this.flag;
+      return this.flag.toString();
   }
   
-  public String asData() {
-	  return this.flag + ":" + this.content;
+  public String raw() {
+	  return this.getFlag() + ":" + this.data;
   }
   
 }
