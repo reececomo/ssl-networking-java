@@ -1,6 +1,9 @@
 import java.io.*;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
@@ -29,22 +32,26 @@ public class Director {
 	
 	//constructor
 	public Director ( int portNo ) {
+		
 		// SSL Certificate
 		SSLHandler.declareServerCert("cits3002_01Keystore","cits3002");
+		ExecutorService executorService = Executors.newFixedThreadPool(100);
 		
 		// Start Server and listen
-		if( this.startSocket(portNo) )
-			
+		if( this.startSocket(portNo) ) 
 			while(this.socketIsListening)
 				
-				try {
-					SSLSocket clientSocket = (SSLSocket) director.accept();
-					System.out.println("New client");
-					
-				} catch (Exception error) {
-					
-					System.err.println("Error connecting client: " + error );
-				}
+			try {
+			
+			SSLSocket clientSocket = (SSLSocket) director.accept();
+			executorService.execute(new DirectorClient ( clientSocket ));
+			System.out.println("New client");
+			
+			} catch (IOException err) {
+				
+				System.err.println("Error connecting client " + err);
+			}
+		
 	}
 	
 	public boolean startSocket( int portNo ) {
@@ -65,6 +72,7 @@ public class Director {
 			return false;
 		}
 	}
+
 	
 	public String getIPAddress() {
 		try {
