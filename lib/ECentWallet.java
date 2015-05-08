@@ -25,29 +25,35 @@ public class ECentWallet {
 	public ECentWallet() throws IOException
 	{
 		eCentFile = new File( FILE_LOCATION );
-		eCents = new HashMap<Integer,String>();
+		eCents = new HashSet<String>();
 		loadWallet();
 	}
 	
 	// Add new eCent
 	public void add(String eCent, boolean sync) {
+		
 		if(eCents.contains(eCent)) // If already exists, throw exception
 			throw new IllegalArgumentException("eCent already exists your fucked in the head cunt: "+eCent);
 		else // Otherwise add the eCent
 			eCents.add(eCent);
-		
+			
 		if(sync)
 			this.saveWallet();
 	}
+	
 	public void add(String eCent) {
+		
+		// if add(eCent), syncronise by default
 		this.add(eCent,true);
+		
 	}
 	
 	// Add an array of eCents from string[]
 	public void add(String[] eCentArray) {
+		
 		for (String eCent : eCentArray)
 			this.add(eCent,false);
-		
+			
 		this.saveWallet();
 	}
 	
@@ -57,7 +63,7 @@ public class ECentWallet {
 	
 	private void loadWallet() throws IOException {
 		FileReader fr;
-    	String rawLine;
+    		String rawLine;
     	
 		try {
 			// Open file
@@ -65,13 +71,13 @@ public class ECentWallet {
 			BufferedReader br = new BufferedReader(fr);
 			
 			// Load eCents
-	    	while ((rawLine = br.readLine()) != null)
-	    		this.add( new ECent(rawLine), false);
-		    
-	    	// Close file
-	    	fr.close();
-	    	
-	    	System.out.println("Wallet loaded!");
+		    	while ((rawLine = br.readLine()) != null)
+		    		this.add( new ECent(rawLine), false);
+		    		
+		    	// Close file
+		    	fr.close();
+		    	
+		    	System.out.println("Wallet loaded!");
 	    	
 		} catch (FileNotFoundException e) {
 			System.out.println("No wallet found, creating new wallet.");
@@ -81,10 +87,10 @@ public class ECentWallet {
 	private boolean saveWallet() {
 		try {
 			FileWriter fw = new FileWriter(eCentFile.getAbsoluteFile());
-			BufferedWriter bw= new BufferedWriter(fw);
+			BufferedWriter bw = new BufferedWriter(fw);
 			
-			bw.write(this.dumpECentsToString());
-			bw.close();
+			bw.write(this.eCentsAsString()); // Dump the contents of the var eCents
+			bw.close(); // Save the file
 			
 			return true;
 			
@@ -94,23 +100,24 @@ public class ECentWallet {
 		}
 	}
 	
-	private String dumpECentsToString() {
+	private String eCentsAsString() {
 		StringBuilder myString = new StringBuilder();
 		
 		for (String eCent : eCents)
 			myString.append(eCent + "\n");
-		
+			
 		return myString.toString();
 	}
 	
 	public String remove() {
 		// This "foreach" will grab the first element if one exists
 		for(String eCent : eCents) {
-			String myECent = eCent;
+			String deletedECent = eCent;
+			
 			eCents.remove(eCent); // delete from wallet
 			saveWallet(); // save wallet
 			
-			return myECent;
+			return deletedECent;
 		}
 		return null; //returns null if no eCents
 	}
