@@ -1,19 +1,22 @@
 import java.io.*;
 import javax.net.ssl.*;
-import java.security.SecureRandom;
+import java.security.*;
+import java.util.*;
 
 public class Bank
 {
     
 	private static final int bankPort = 9999;
 	 
-	private int sequence = 0; //this should be changed later if we want to make the sequence number permanent(stored in file)
+	private static int sequence = 0;			
 	private static int validationKey; 
 	
 	private static final String BANK_REQ = "REQ";		// withdrawl flag
 	private static final String BANK_DEP = "DEP";		// deposit flag
 
 	private static SSLServerSocket sslserversocket = null;
+
+	private static HashSet<String> bankStore;
 
 	/**
 	 * Bank 
@@ -24,9 +27,11 @@ public class Bank
 		System.setProperty("javax.net.ssl.keyStore", "cits3002_01Keystore");
     		System.setProperty("javax.net.ssl.keyStorePassword", "cits3002");
     	
-    	//Generates validation key for hashing
-    	SecureRandom random = new SecureRandom();
-    	validationKey= random.nextInt(32);
+    		//Generates validation key for hashing
+    		SecureRandom random = new SecureRandom();
+    		validationKey= random.nextInt(32);
+
+		bankStore = new HashSet<String>();
 
 		try {
 			// Use the SSLSSFactory to create a SSLServerSocket to create a SSLSocket
@@ -85,15 +90,16 @@ public class Bank
 
 				if(flag.equals("REQ")){
 
-					String amount = packet.substring(4, packet.length()) + "\n";
+					String amount = packet.substring(4, packet.length());
 
 					// Ecent encryption
 					int am = Integer.parseInt(amount);
-					int[] centArray= new int[am];
-					centArray=generateEcent(am);
-					
-					outputstreamwriter.write(amount);
-					outputstreamwriter.flush();
+	
+					for(int i=0; i<am; i++){
+						outputstreamwriter.write(generateEcent());
+						outputstreamwriter.flush();
+					}
+
 					System.out.println("Money Sent");
 
 				}else if(flag.equals("DEP")){
@@ -107,13 +113,44 @@ public class Bank
 				System.out.println(e.getMessage());
         		}
 		}
-		
-		//needs to be fully implemented
-		private int[] generateEcent(int amount){
-			int[] centArray = new int[amount];
-			for (int i=0; i<amount; i++){
-				
-			}
-			return centArray;
-		}
 	}
+
+	
+	private static String generateEcent(){
+
+		return getSHA256Hash(Integer.toString(sequence++));
+	}
+
+
+	private static String getSHA256Hash(String passwordToHash){
+
+		String generatedPassword = null;
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			String salt = getSalt();
+			md.update(salt.getBytes());
+			byte[] bytes = md.digest(passwordToHash.getBytes());
+			StringBuilder sb = new StringBuilder();
+			for(int i=0; i< bytes.length ;i++){
+				sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+			}
+			generatedPassword = sb.toString();
+		}
+		catch (NoSuchAlgorithmException e)
+		{
+			e.printStackTrace();
+		}
+		bankStore.add(generatedPassword);
+		return generatedPassword;
+	}
+        
+	//Add salt
+	private static String getSalt() throws NoSuchAlgorithmException
+	{
+		SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+		byte[] salt = new byte[16];
+		sr.nextBytes(salt);
+		return salt.toString();
+	}
+
+}

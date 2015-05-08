@@ -28,8 +28,7 @@ public class Collector
 	public Collector() throws IOException {
 		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
 		
-		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
-		outPacket = MessageFlag.BANK_REQ + ";10000\n";
+
 
 		// set up packet in the form FLAG;MSG (ie REQ;DETAILS)
 		outPacket = MessageFlag.DIR_INIT + ";DATA\n";
@@ -37,54 +36,24 @@ public class Collector
 		// Instantiate eCentWallet
 		eCentWallet = new ECentWallet();
 		
+		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
+		outPacket = MessageFlag.BANK_REQ + ";10000\n";
+
+		System.out.println(outPacket);
+
 		// If empty wallet, generate new string
-		if (eCentWallet.isEmpty()) {
-			String input = "uhau532y43ujh5bufd\nhsuifdasffhusigbuis\nasf35920u4389u2s";
-			eCentWallet.add(input.split("\n"));
-		}
+		if (eCentWallet.isEmpty()) buyMoney();
 		
 		//String myECent = eCentWallet.remove(); // Take an ECent out
 
 		System.out.println("You have " + eCentWallet.getBalance() + " eCents in your wallet!");
-		//ONLINE = initDir();
-		
-		connectToDirector();
+		ONLINE = initDir();
+
 
 		// collects an array of randomly generated ints for basic analysis (perhaps an average)
-		int[] data = collect();
+	//	int[] data = collect();
 	}
-	
-	private void connectToDirector() {
-		try{
-			// set up Socket to bank
-			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", 9998 );
 
-			// (FOR RECIEVING MONEY) -
-			InputStream inputstream = sslsocket.getInputStream();
-			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
-
-			// (FOR SENDING REQUEST) -
-			// prepare output stream (strings -> bytes)
-			OutputStream outputstream = sslsocket.getOutputStream();
-            OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
-
-			System.out.println("Sending Money Withdrawl Request..");
-
-			outputstreamwriter.write(outPacket);
-			outputstreamwriter.flush();
-			
-			inPacket = bufferedreader.readLine();
-			
-			System.out.println(inPacket);			// print money recieved (this would IO pipe into file)
-
-		}catch (IOException e)
-		{
-			e.printStackTrace();
-			System.err.println("Could not achieve IO connection: ");
-		}
-	}
 
 	private void buyMoney() throws IOException{
 		try{
@@ -106,14 +75,13 @@ public class Collector
 
 			System.out.println("Sending Money Withdrawl Request..");
 
-			// write packet to outputstreamwriter (Note: bufferedwriter isn't needed since we don't need to buffer system input)
 			outputstreamwriter.write(outPacket);
 			outputstreamwriter.flush();
 			
-			inPacket = bufferedreader.readLine();
-			
-			
-			System.out.println(inPacket);			// print money recieved (this would IO pipe into file)
+			while((inPacket = bufferedreader.readLine()) != null){
+				System.out.println(inPacket);		
+				eCentWallet.add(inPacket);
+			}
 
 		}catch (IOException e)
 		{
