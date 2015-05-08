@@ -19,7 +19,7 @@ import java.util.HashMap;
 public class ECentWallet {
 	
 	private static final String FILE_LOCATION = "ecents.wallet";
-	private HashMap<Integer,String> eCents; // wallet contents
+	private HashSet<String> eCents; // wallet contents
 	private File eCentFile;
 	
 	public ECentWallet() throws IOException
@@ -30,26 +30,23 @@ public class ECentWallet {
 	}
 	
 	// Add new eCent
-	public boolean add(ECent ec, boolean sync) {
-		if(eCents.containsKey(ec.seqNo)) // If already exists, throw exception
-			throw new IllegalArgumentException("eCent already exists your fucked in the head cunt: "+ec.seqNo);
-		else {
-			eCents.put(ec.seqNo, ec.hash);
-		}
+	public void add(String eCent, boolean sync) {
+		if(eCents.contains(eCent)) // If already exists, throw exception
+			throw new IllegalArgumentException("eCent already exists your fucked in the head cunt: "+eCent);
+		else // Otherwise add the eCent
+			eCents.add(eCent);
+		
 		if(sync)
 			this.saveWallet();
-		return true;
 	}
-	public boolean add(ECent ec) {
-		return this.add(ec,true);
+	public void add(String eCent) {
+		this.add(eCent,true);
 	}
 	
 	// Add an array of eCents from string[]
 	public void add(String[] eCentArray) {
-		for (String eCent : eCentArray) {
-			ECent newECent = new ECent(eCent);
-			this.add(newECent,false);
-		}
+		for (String eCent : eCentArray)
+			this.add(eCent,false);
 		
 		this.saveWallet();
 	}
@@ -99,20 +96,21 @@ public class ECentWallet {
 	
 	private String dumpECentsToString() {
 		StringBuilder myString = new StringBuilder();
-		for (Integer seqNo : eCents.keySet()) {
-			myString.append(seqNo + ":" + eCents.get(seqNo) + "\n");
-		}
+		
+		for (String eCent : eCents)
+			myString.append(eCent + "\n");
 		
 		return myString.toString();
 	}
 	
-	public String removeECent(){
-		for(Integer seqNo : eCents.keySet()) {
-			String hash = eCents.get(seqNo);
-			eCents.remove(seqNo); // delete from wallet
+	public String remove() {
+		// This "foreach" will grab the first element if one exists
+		for(String eCent : eCents) {
+			String myECent = eCent;
+			eCents.remove(eCent); // delete from wallet
 			saveWallet(); // save wallet
 			
-			return seqNo + ":" + hash;
+			return myECent;
 		}
 		return null; //returns null if no eCents
 	}
