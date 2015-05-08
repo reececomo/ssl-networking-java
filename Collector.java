@@ -37,7 +37,7 @@ public class Collector
 		eCentWallet = new ECentWallet();
 		
 		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
-		outPacket = MessageFlag.BANK_REQ + ";10000\n";
+		outPacket = MessageFlag.BANK_REQ + ";100\n";
 
 		System.out.println(outPacket);
 
@@ -78,10 +78,20 @@ public class Collector
 			outputstreamwriter.write(outPacket);
 			outputstreamwriter.flush();
 			
+			String[] eCentBuffer = new String[100];
+
+			int index = 0;
 			while((inPacket = bufferedreader.readLine()) != null){
-				System.out.println(inPacket);		
-				eCentWallet.add(inPacket);
+				System.out.println(index + " = " + inPacket);	
+				eCentBuffer[index] = inPacket;
+				index++;
 			}
+
+			System.out.println("GETTING HERE");
+
+			eCentWallet.add(eCentBuffer);
+
+
 
 		}catch (IOException e)
 		{

@@ -95,17 +95,22 @@ public class Bank
 					// Ecent encryption
 					int am = Integer.parseInt(amount);
 	
+					String ecent;
 					for(int i=0; i<am; i++){
-						outputstreamwriter.write(generateEcent());
+						ecent = generateEcent() + "\n";
+						outputstreamwriter.write(ecent);
 						outputstreamwriter.flush();
 					}
-
+					
+					
 					System.out.println("Money Sent");
 
 				}else if(flag.equals("DEP")){
 
 					// Handle deposit/Ecent checking
 				}
+
+				sslsocket.close();
 
 			} catch (IOException e)
         		{
