@@ -19,10 +19,10 @@
 ## [1] Core Components
 ### 1.0 Description
 The project consists of four root components:
-- <i>**The Analysts (1.1)**: Nodes that recieve raw data and return a result/action (for the price of 1 eCent).</i>
-- <i>**The Bank (1.2)**: A single node that dishes out money to the collectors, and stores accounts for the analysts.</i>
-- <i>**The Collectors (1.3)**: Nodes that collect raw data and send it to the director for processing.</i>
-- <i>**The Director (1.4)**: A "bridging" delegate node that forwards collectors requests for analysis.</i>
+- <i>**[The Analysts (1.1)](/Analyst.java)**: Nodes that recieve raw data and return a result/action (for the price of 1 eCent).</i>
+- <i>**[The Bank (1.2)](/Bank.java)**: A single node that dishes out money to the collectors, and stores accounts for the analysts.</i>
+- <i>**[The Collectors (1.3)](/Collector.java)**: Nodes that collect raw data and send it to the director for processing.</i>
+- <i>**[The Director (1.4)](/Director.java)**: A "bridging" delegate node that forwards collectors requests for analysis.</i>
 
 ### 1.1 Analysts
 - <code>Analyst() throws IOException</code> : Runs the analyst program
@@ -53,7 +53,7 @@ The project consists of four root components:
 ## [2] Helper classes and ADTs
 ### 2.0 Description
 The project also utilises a number of *Abstract Data Types* and helper classes
-- <i>**ECentWallet [ADT] (1.1)**: Holds the users eCent balance (as well as inidividual eCents) in volatile AND hard memory.</i>
-- <i>**Message [ADT] (1.2)**: A wrapper for raw string data; provides protocol for reading/formatting messages.</i>
-- <i>**MessageFlag [Helper] (1.3)**: A globally accessible series of flags that denote Message format.</i>
-- <i>**SSLHandler [Helper] (1.4)**: Helper methods for consistency in declaring SSL Certificates</i>
+- <i>**[ECentWallet (ADT) (1.1)](/lib/ECentWallet.java)**: Holds the users eCent balance (as well as inidividual eCents) in volatile AND hard memory.</i>
+- <i>**[Message (ADT) (1.2)](/lib/Message.java)**: A wrapper for raw string data; provides protocol for reading/formatting messages.</i>
+- <i>**[MessageFlag (Helper) (1.3)](/lib/MessageFlag.java)**: A globally accessible series of flags that denote Message format.</i>
+- <i>**[SSLHandler (Helper) (1.4)](/lib/SSLHandler.java)**: Helper methods for consistency in declaring SSL Certificates</i>
