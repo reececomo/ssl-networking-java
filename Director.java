@@ -36,20 +36,18 @@ public class Director {
 	
 	//constructor
 	public Director ( int portNo ) {
-		
 		analystPool = new HashMap<String, HashSet<String>>();		// hashmap of data types, storing all [address:socket] of analyst's assoc. with data type
 		busyAnalyst = new HashSet<String>();				// busy analysts address pool (all analysts in here are currently busy)
 
-
 		// SSL Certificate
-
 		SSLHandler.declareDualCert("cits3002_01Keystore","cits3002");
 		ExecutorService executorService = Executors.newFixedThreadPool(100);
 		
 		// Start Server and listen
-		if( this.startSocket(portNo) ) {
-			while(this.socketIsListening){
-				try {	
+		if( this.startSocket( portNo ) )
+			while(this.socketIsListening)
+				try
+				{
 					SSLSocket clientSocket = (SSLSocket) director.accept();
 					executorService.execute(new DirectorClient ( clientSocket ));
 					System.out.println("New client");
@@ -58,8 +56,6 @@ public class Director {
 				
 					System.err.println("Error connecting client " + err);
 				}
-			}
-		}
 	}
 	
 	public boolean startSocket( int portNo ) {
@@ -135,10 +131,10 @@ public class Director {
 					// Analyst INIT packet = [ INITFLAG  :  DATA TYPE  ;  ADDRESS  ;  PORT ]   where address/port is what analyst server is listening on
 					//					   t		 a	   p
 
-					String[] messagePart = msg.getAnalystData();
-					String t = messagePart[0];		// get analyst data type
-					String a = messagePart[1];		// get analyst listening address
-					String p = messagePart[2];		// get analyst listening port
+					String[] msgData = msg.getData();
+					String t = msgData[0];		// get analyst data type
+					String a = msgData[1];		// get analyst listening address
+					String p = msgData[2];		// get analyst listening port
 					
 					if( !analystPool.containsKey(t) ){
 						HashSet<String> set = new HashSet<String>();
@@ -154,10 +150,10 @@ public class Director {
 
 				}else if(msg.getFlag().equals(MessageFlag.EXAM_REQ)){		// Analysis request (examination)
 
-					String temp = msg.data;
-					String t = temp.split(";")[0];		// get collector data type
-					String d = temp.split(";")[1];		// get collector data
-					String c = temp.split(";")[2];		// get collector ecent
+					String msgData[] = msg.getData();
+					String t = msgData[0];		// get collector data type
+					String d = msgData[1];		// get collector data
+					String c = msgData[2];		// get collector ecent
 					
 					HashSet<String> getAnalysts = analystPool.get(t);	// get analyst that match data type
 

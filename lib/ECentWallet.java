@@ -59,12 +59,12 @@ public class ECentWallet {
 		this.saveWallet();
 	}
 	
-	public boolean isEmpty() {
-		return eCents.size() == 0;
-	}
+	public boolean isEmpty() { return eCents.size() == 0; }
 	
-	public int getBalance() {
-		return eCents.size();
+	public int getBalance() { return eCents.size(); }
+	
+	public void displayBalance() {
+		System.out.println("You have " + this.getBalance() + " eCents in your wallet!");
 	}
 	
 	private void loadWallet() throws IOException {

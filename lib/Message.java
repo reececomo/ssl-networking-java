@@ -37,9 +37,9 @@ public class Message {
 	  return this.getFlag() + ":" + this.data;
   }
   
-  // For analyst messages in the standard form:
+  // For messages in the standard form:
   // "INIT_FLAG:DATA;DATA;DATA"
-  public String[] getAnalystData() {
+  public String[] getData() {
 	  try {
 		String[] array = this.data.split(";");
 		if(array.length == 3)
