@@ -155,6 +155,8 @@ public class Director {
 
 				}else if(msg.getFlag().equals(MessageFlag.EXAM_REQ)){		// Analysis request (examination)
 
+					HashSet<String> disconnectedAnalyst = new HashSet<String>();
+
 					String temp = msg.data;
 					String t = temp.split(";")[0];		// get collector data type
 					String d = temp.split(";")[1];		// get collector data
@@ -171,11 +173,15 @@ public class Director {
 								outputstreamwriter.flush();
 								break;
 							}else{
-								System.out.println("REMOVING THE ADDRESS"); // remove the address somehow
+								disconnectedAnalyst.add(address);	// add analyst to DCed set if connection fails
 							}
 						}
 					}
-
+					if(!disconnectedAnalyst.isEmpty()){
+						for(String s : disconnectedAnalyst){
+							analystPool.get(t).remove(s);		// remove DCed analyst from pool
+						}
+					}
 					sslsocket.close();
 				}
 
