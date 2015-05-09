@@ -1,7 +1,10 @@
 import java.io.*;
+
 import javax.net.ssl.*;
+
 import java.security.*;
 import java.util.*;
+
 import lib.*;
 
 /**
@@ -32,8 +35,7 @@ public class Bank
 
 	public static void main(String[] args) throws IOException{
 
-		System.setProperty("javax.net.ssl.keyStore", "cits3002_01Keystore");
-    		System.setProperty("javax.net.ssl.keyStorePassword", "cits3002");
+		SSLHandler.declareServerCert("cits3002_01Keystore","cits3002");
     	
     		//Generates validation key for hashing
     		SecureRandom random = new SecureRandom();

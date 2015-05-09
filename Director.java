@@ -43,8 +43,7 @@ public class Director {
 
 		// SSL Certificate
 
-		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
-		SSLHandler.declareServerCert("cits3002_01Keystore","cits3002");
+		SSLHandler.declareDualCert("cits3002_01Keystore","cits3002");
 		ExecutorService executorService = Executors.newFixedThreadPool(100);
 		
 		// Start Server and listen

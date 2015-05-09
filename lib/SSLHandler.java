@@ -28,4 +28,8 @@ public class SSLHandler {
 	public static void declareClientCert(String cert, String pass) {
 		declareCert( "trust", cert, pass );
 	}
+	public static void declareDualCert(String cert, String pass) {
+		declareServerCert(cert, pass );
+		declareClientCert(cert, pass );
+	}
 }
