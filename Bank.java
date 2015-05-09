@@ -7,7 +7,7 @@ import lib.*;
 /**
  * Bank Class
  * For handling Ecent generation, checking and depositing
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
  * @version 5.9.15
  */
 

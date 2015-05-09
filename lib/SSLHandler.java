@@ -1,5 +1,15 @@
 package lib;
 
+/**
+ * SSL Certificate Handler
+ *    > Creates consistent SSL certificate declarations.
+ *    > Can be expanded to include other global properties.
+ * 
+ * @author Reece Notargiacomo
+ * @date May 8th 2015
+ * 
+ */
+
 import java.io.IOException;
 
 import javax.net.ssl.SSLServerSocket;

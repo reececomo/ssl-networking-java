@@ -13,7 +13,7 @@ import lib.*;
 /**
  * Director Node class
  * 
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
  * @version 5.9.15
  *
  */
@@ -136,10 +136,10 @@ public class Director {
 					// Analyst INIT packet = [ INITFLAG  :  DATA TYPE  ;  ADDRESS  ;  PORT ]   where address/port is what analyst server is listening on
 					//					   t		 a	   p
 
-					String temp = msg.data;
-					String t = temp.split(";")[0];		// get analyst data type
-					String a = temp.split(";")[1];		// get analyst listening address
-					String p = temp.split(";")[2];		// get analyst listening port
+					String[] messagePart = msg.getAnalystData();
+					String t = messagePart[0];		// get analyst data type
+					String a = messagePart[1];		// get analyst listening address
+					String p = messagePart[2];		// get analyst listening port
 					
 					if( !analystPool.containsKey(t) ){
 						HashSet<String> set = new HashSet<String>();

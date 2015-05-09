@@ -3,7 +3,9 @@ package lib;
 /**
  *  A standard message class that auto-sets the message on
  *  instantiation, as well as providing a getter for the "flag"
- *  property.
+ *  and analyst data properties.
+ *  
+ *  @author Alexander Popoff-Asotoff, Reece Notargiacomo, Jesse Fletcher, Caleb Fetzer
  */
  
 public class Message {
@@ -33,6 +35,19 @@ public class Message {
   
   public String raw() {
 	  return this.getFlag() + ":" + this.data;
+  }
+  
+  // For analyst messages in the standard form:
+  // "INIT_FLAG:DATA;DATA;DATA"
+  public String[] getAnalystData() {
+	  try {
+		String[] array = this.data.split(";");
+		if(array.length == 3)
+			return array;
+	  } catch (NullPointerException err) {
+		  System.out.println("Not analyst data");
+	  }
+	  return null;
   }
   
 }

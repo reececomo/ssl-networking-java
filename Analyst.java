@@ -10,7 +10,7 @@ import javax.net.ssl.*;
 
 /**
  * Analyst Class for analysing data
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
  * @version 5.9.15
  */
 public class Analyst {
