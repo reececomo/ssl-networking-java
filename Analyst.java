@@ -1,5 +1,7 @@
 import java.io.*;
+
 import lib.*;
+
 import java.security.*;
 import java.util.*;
 import java.net.InetAddress;
@@ -10,7 +12,7 @@ import javax.net.ssl.*;
 
 /**
  * Analyst Class for analysing data
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
  * @version 5.9.15
  */
 public class Analyst {
@@ -33,8 +35,7 @@ public class Analyst {
 
 	public Analyst() throws IOException {
 
-		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
-		SSLHandler.declareServerCert("cits3002_01Keystore","cits3002");
+		SSLHandler.declareDualCert("cits3002_01Keystore","cits3002");
 		
 		getMoney();
 

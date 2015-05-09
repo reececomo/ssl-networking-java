@@ -11,13 +11,12 @@ import java.util.HashSet;
 
 /**
  * Abstract container class
- *    > Syncronises volatile and non-volatile
- *    >  memory for the String 'eCent's.
+ *    > Syncs volatile and non-volatile
+ *    > memory for the users eCent Wallet.
  * 
+ * @author Alexander Popoff-Asotoff, Reece Notargiacomo
  * @date May 7th 2015
  * 
- * @author Alexander Popoff-Asotoff
- * @author Reece Notargiacomo
  */
 public class ECentWallet {
 	
@@ -60,12 +59,12 @@ public class ECentWallet {
 		this.saveWallet();
 	}
 	
-	public boolean isEmpty() {
-		return eCents.size() == 0;
-	}
+	public boolean isEmpty() { return eCents.size() == 0; }
 	
-	public int getBalance() {
-		return eCents.size();
+	public int getBalance() { return eCents.size(); }
+	
+	public void displayBalance() {
+		System.out.println("You have " + this.getBalance() + " eCents in your wallet!");
 	}
 	
 	private void loadWallet() throws IOException {

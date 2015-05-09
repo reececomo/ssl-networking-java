@@ -7,7 +7,7 @@ import javax.net.ssl.*;
 
 /**
  * Collector Class
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
  * @version 5.9.15
  */
 
@@ -32,32 +32,22 @@ public class Collector
 	
 	public Collector() throws IOException {
 		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
-
-		// Instantiate eCentWallet
+		
+		// Initiate eCentWallet
 		eCentWallet = new ECentWallet();
+		if (eCentWallet.isEmpty())
+			buyMoney();
+		
+		eCentWallet.displayBalance();
 		
 		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
 		outPacket = MessageFlag.BANK_WIT + ":100\n";
-
-		// If empty wallet, buy money
-		if (eCentWallet.isEmpty()) buyMoney();
-		
-		//String myECent = eCentWallet.remove(); // Take an ECent out
-
-		System.out.println("You have " + eCentWallet.getBalance() + " eCents in your wallet!");
-
-		// set up packet in the form FLAG;MSG (ie REQ;DETAILS)
 		outPacket = MessageFlag.C_INIT + ":DATA\n";
 
-	//	System.out.println(outPacket);
-
 		ONLINE = initDir();
-
-		if(ONLINE) sendData();
-
-
-		// collects an array of randomly generated ints for basic analysis (perhaps an average)
-	//	int[] data = collect();
+		
+		if(ONLINE)
+			sendData();
 	}
 
 

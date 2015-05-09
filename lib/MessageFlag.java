@@ -1,4 +1,9 @@
 package lib;
+/**
+ *  A list of Message flags shared by classes
+ *  
+ *  @author Alexander Popoff-Asotoff, Reece Notargiacomo, Jesse Fletcher, Caleb Fetzer
+ */
 
 public class MessageFlag {
 	public static final String BANK_DEP = "DEP";	// bank deposit (analyst)
