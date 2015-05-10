@@ -34,7 +34,7 @@ public class Collector
 		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
 		
 		// Initiate eCentWallet
-		eCentWallet = new ECentWallet();
+		eCentWallet = new ECentWallet( "ecents.wallet" );
 		if (eCentWallet.isEmpty())
 			buyMoney();
 		
