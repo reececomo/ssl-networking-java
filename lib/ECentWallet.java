@@ -10,9 +10,9 @@ import java.io.IOException;
 import java.util.HashSet;
 
 /**
- * Abstract container class
- *    > Syncs volatile and non-volatile
- *    > memory for the users eCent Wallet.
+ * Abstract Data Type
+ * 	To contain and syncronise eCent hash strings
+ * 	in volatile memory and to hard disk.
  * 
  * @author Alexander Popoff-Asotoff, Reece Notargiacomo
  * @date May 7th 2015
@@ -20,74 +20,62 @@ import java.util.HashSet;
  */
 public class ECentWallet {
 	
-	private static final String FILE_LOCATION = "ecents.wallet";
 	private HashSet<String> eCents; // wallet contents
 	private File eCentFile;
 	
-	public ECentWallet() throws IOException
+	public ECentWallet( String myECentFileLocation ) throws IOException
 	{
-		eCentFile = new File( FILE_LOCATION );
+		eCentFile = new File( myECentFileLocation );
 		eCents = new HashSet<String>();
-		loadWallet();
+		loadWallet(); // load from file (on instantiation)
 	}
 	
-	// Add new eCent
-	public void add(String eCent, boolean sync) {
-		
-		if(eCents.contains(eCent)) // If already exists, throw exception
-			throw new IllegalArgumentException("eCent already exists your fucked in the head cunt: "+eCent);
-		else // Otherwise add the eCent
-			eCents.add(eCent);
+	// Add new eCent (and sync by default)
+	public void add(String eCent) { this.add(eCent,true); }
+	
+	// Add new eCent (with sync option)
+	public void add(String eCentHash, boolean sync) {
+		if(eCents.contains(eCentHash))
+			throw new IllegalArgumentException("Trying to add an eCent already in wallet! eCent hash: " + eCentHash);
+		else
+			eCents.add(eCentHash); // Add to eCent hashset
 			
 		if(sync)
-			this.saveWallet();
-	}
-	
-	public void add(String eCent) {
-		
-		// if add(eCent), syncronise by default
-		this.add(eCent,true);
-		
+			this.saveWallet(); // Sync if requested
 	}
 	
 	// Add an array of eCents from string[]
 	public void add(String[] eCentArray) {
 		
 		for (String eCent : eCentArray)
-			this.add(eCent,false);
+			this.add(eCent, false); // don't sync until afterwards
 			
 		this.saveWallet();
 	}
 	
+	// Additional helper methods
 	public boolean isEmpty() { return eCents.size() == 0; }
-	
 	public int getBalance() { return eCents.size(); }
+	public void displayBalance() { System.out.println("You have " + this.getBalance() + " eCents in your wallet!"); }
 	
-	public void displayBalance() {
-		System.out.println("You have " + this.getBalance() + " eCents in your wallet!");
-	}
-	
-	private void loadWallet() throws IOException {
-		FileReader fr;
-    	
+	// Hard disk methods
+	private boolean loadWallet() throws IOException {
 		try {
-			// Open file
-			fr = new FileReader (eCentFile.getAbsoluteFile());
+			FileReader fr = new FileReader( eCentFile.getAbsoluteFile() ); // Load file
 			BufferedReader br = new BufferedReader(fr);
 			
 			// Load eCents
-    		String eCent;
-	    	while ((eCent = br.readLine()) != null)
-	    		this.add( eCent, false);
+	    		String loadedECent;
 	    		
-	    	// Close file
-	    	fr.close();
-	    	
-	    	System.out.println("Wallet loaded!");
-	    	
-		} catch (FileNotFoundException e) {
-			System.out.println("No wallet found, creating new wallet.");
-		}
+		    	while ((loadedECent = br.readLine()) != null)
+		    		this.add( loadedECent, false);
+		    		
+		    	fr.close(); //close file
+		    	
+		} catch (FileNotFoundException e) { return false; }
+		
+		// if file exists and was loaded, return true
+		return true;
 	}
 	
 	private boolean saveWallet() {
@@ -116,14 +104,13 @@ public class ECentWallet {
 	}
 	
 	public String remove() {
-		// This "foreach" will grab the first element if one exists
 		for(String eCent : eCents) {
-			String deletedECent = eCent;
+			String firstECent = eCent;
 			
-			eCents.remove(eCent); // delete from wallet
+			eCents.remove( eCent ); // delete from wallet
 			saveWallet(); // save wallet
 			
-			return deletedECent;
+			return firstECent;
 		}
 		return null; //returns null if no eCents
 	}
