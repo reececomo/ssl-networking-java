@@ -41,7 +41,7 @@ public class Collector
 		eCentWallet.displayBalance();
 		
 		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
-		outPacket = MessageFlag.BANK_WIT + ":100\n";
+		
 		outPacket = MessageFlag.C_INIT + ":DATA\n";
 
 		ONLINE = initDir();
@@ -70,6 +70,8 @@ public class Collector
             		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
 
 			System.out.println("Sending Money Withdrawl Request..");
+
+			outPacket = MessageFlag.BANK_WIT + ":100\n";
 
 			outputstreamwriter.write(outPacket);
 			outputstreamwriter.flush();

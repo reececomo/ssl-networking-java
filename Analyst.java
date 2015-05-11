@@ -88,6 +88,12 @@ public class Analyst {
 			String data = inPacket.split(";")[0];
 			String eCent = inPacket.split(";")[1];
 
+			try{
+				System.out.println("SLEEPING BEFORE DEPOSIT...");
+				Thread.sleep(10000);
+			}
+			catch (Exception e){}
+
 			if(depositMoney(eCent)){
 
 				// ANALYSE DATA
@@ -96,6 +102,12 @@ public class Analyst {
 			}else{
 				outPacket = "FALSEINVALID\n";		// ECENT NOT VALID
 			}
+
+			try{
+				System.out.println("SLEEPING AFTER DEPOSIT...");
+				Thread.sleep(10000);
+			}
+			catch ( Exception e){}
 
 			System.out.println("Result returned to Director = " + outPacket);
 			outputstreamwriter.write(outPacket);

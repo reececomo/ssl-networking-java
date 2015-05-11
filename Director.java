@@ -24,8 +24,6 @@ public class Director {
 
 	private HashMap<String, HashSet<String>> analystPool;	// explained in constuctor
 	private HashSet<String> busyAnalyst;			// as above
-
-	private String inPacket, outPacket;
 	
 	private boolean socketIsListening = true;
 	
@@ -95,6 +93,8 @@ public class Director {
 
 	public class DirectorClient implements Runnable {
 
+		private String inPacket, outPacket;
+
 		protected SSLSocket sslsocket = null;
 
 		public DirectorClient(SSLSocket socket){
@@ -111,8 +111,6 @@ public class Director {
 				OutputStream outputstream = sslsocket.getOutputStream();
             			OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
 		
-				System.out.println("Thread Started");
-		
 				String packet = bufferedreader.readLine();
 			//	System.out.println(packet);
 
@@ -122,6 +120,7 @@ public class Director {
 				// this may be put in a protocol LATER
 
 				if(msg.getFlag().equals(MessageFlag.C_INIT)){		// Collector init
+					System.out.println("Collector Initialized..");
 
 					if(analystPool.containsKey(msg.data)){
 						outputstreamwriter.write("TRUE\n");
@@ -149,13 +148,17 @@ public class Director {
 						analystPool.get(t).add(a + ":" + p);
 					}
 				
-				//	System.out.println("t="+t+"\na+p="+a + ":" + p+"\n");
+					System.out.println("Analyst Initialized with data type: " + t);
 
 					sslsocket.close();
 
 				}else if(msg.getFlag().equals(MessageFlag.EXAM_REQ)){		// Analysis request (examination)
 
 					HashSet<String> disconnectedAnalyst = new HashSet<String>();
+
+					System.out.println("Data Analysis request recieved");
+
+					boolean success = false;
 
 					String temp = msg.data;
 					String t = temp.split(";")[0];		// get collector data type
@@ -169,14 +172,22 @@ public class Director {
 							
 							outPacket = d + ";" + c + "\n";
 							if(sendDataToAnalyst(outPacket, address)){
-								outputstreamwriter.write(outPacket);
-								outputstreamwriter.flush();
-								break;
+								if(outPacket != null){
+									outputstreamwriter.write(outPacket);
+									outputstreamwriter.flush();
+									System.out.println("Result successfully returned to collector");
+									success = true;
+									break;
+								}else 
+									System.out.println("Analyst crashed after recieving ecent.. trying next one");
 							}else{
 								disconnectedAnalyst.add(address);	// add analyst to DCed set if connection fails
 							}
 						}
 					}
+
+					if(!success) System.out.println("Analysis could not be completed...");
+
 					if(!disconnectedAnalyst.isEmpty()){
 						for(String s : disconnectedAnalyst){
 							analystPool.get(t).remove(s);		// remove DCed analyst from pool
@@ -215,7 +226,6 @@ public class Director {
 				outputstreamwriter.flush();
 
 				outPacket = bufferedreader.readLine(); // get packet to forward to collector
-				System.out.println("SENDING RESULT BACK TO COLLECTOR = " + outPacket);		
 
 				busyAnalyst.remove(address);	
 				return true;

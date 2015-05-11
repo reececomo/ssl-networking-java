@@ -111,7 +111,10 @@ public class Bank
 					System.out.println("Analyst connected\nDepositing money..");
 
 					//Check if Ecent is in valid Ecent set
-					if(bankStore.contains(msg.data)) outputstreamwriter.write("TRUE\n");	
+					if(bankStore.contains(msg.data)){
+						outputstreamwriter.write("TRUE\n");	
+						bankStore.remove(msg.data);
+					}
 					else outputstreamwriter.write("FALSE\n");
 
 					outputstreamwriter.flush();
