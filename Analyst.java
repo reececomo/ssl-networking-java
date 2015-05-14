@@ -46,7 +46,7 @@ public class Analyst {
 			analyst = new Analyst("localhost","localhost");
 	}
 
-	public Analyst(dirIP, bankIP) throws IOException {
+	public Analyst(String dirIP, String bankIP) throws IOException {
 		
 		// Declare Director/Bank
 		this.directorIPAddress = dirIP;
@@ -104,8 +104,8 @@ public class Analyst {
        	
        			// Read a line
 			this.inMsg = reader.readLine();
-			
-			if ((String[] message = decryptMessage(this.inMsg)) != null) {
+			String[] message;
+			if ((message = decryptMessage(this.inMsg)) != null) {
 				
 				this.delayWithMessage("Preparing to deposit.");
 	
@@ -153,7 +153,7 @@ public class Analyst {
 			System.out.println("Sending Director Initialization..");
 
 			// Analyst INIT message = [ INITFLAG  :  DATA TYPE  ;  ADDRESS  ;  PORT ]	address/port analyst is listening on
-			outMsg = MessageFlag.A_INIT + ":" + "DATA" + ";" + getIPAddress() + ";" + Integer.toString(myPort) + "\n";
+			outMsg = MessageFlag.A_INIT + ":" + "DATA" + ";" + getIPAddress() + ";" + Integer.toString(localPort) + "\n";
 
 			outputstreamwriter.write( outMsg );
 			outputstreamwriter.flush();

@@ -16,11 +16,12 @@ public class Collector
 	private final int dirPort = 9998;
 	private final int bankPort = 9999;
 
+	private final static String ECENTWALLET_FILE = "ecents.wallet";
+
 	private String outPacket;
 	private String inPacket;
 
-	private boolean ONLINE = false;			// boolean for determining if analyst availiable 
-	private ECentWallet eCentWallet;					// file for holding ecents
+	private ECentWallet eCentWallet; // file for holding ecents
 	
 	
 	/**
@@ -34,20 +35,15 @@ public class Collector
 		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
 		
 		// Initiate eCentWallet
-		eCentWallet = new ECentWallet( "ecents.wallet" );
-		if (eCentWallet.isEmpty())
-			buyMoney();
-		
-		eCentWallet.displayBalance();
+		this.eCentWallet = new ECentWallet( ECENTWALLET_FILE );
+		if(eCentWallet.isEmpty()){ buyMoney(); }
+		this.eCentWallet.displayBalance();
 		
 		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
-		
 		outPacket = MessageFlag.C_INIT + ":DATA\n";
 
-		ONLINE = initDir();
-		
-		if(ONLINE)
-			sendData();
+		if(connectToDirector())
+			sendDirectorData();
 	}
 
 
@@ -95,7 +91,7 @@ public class Collector
 	}
 	
 	// Returns TRUE iff director can handle data analysis (has analyst(s) availiable)
-	private boolean initDir() throws IOException{
+	private boolean connectToDirector() throws IOException{
 		try{
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
 			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", dirPort);
@@ -127,7 +123,7 @@ public class Collector
 		return false;
 	}
 
-	private void sendData() throws IOException{
+	private void sendDirectorData() throws IOException{
 		try{
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
 			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", dirPort);
@@ -144,10 +140,10 @@ public class Collector
 
 			System.out.print("THE PACKET I'M SENDING FOR ANALYSIS IS:\n" + outPacket);
 
-			outputstreamwriter.write(outPacket);			// send request to director (FLAG:TYPE;DATA;ECENT)
+			outputstreamwriter.write(outPacket); // send request to director (FLAG:TYPE;DATA;ECENT)
 			outputstreamwriter.flush();
 
-			inPacket = bufferedreader.readLine();			// read result returned by director
+			inPacket = bufferedreader.readLine(); // read result returned by director
 			System.out.println("RESULT I PAID FOR: " + inPacket);
 
 			sslsocket.close();
