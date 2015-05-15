@@ -16,8 +16,8 @@ import java.net.UnknownHostException;
 
 public class DemoMode {
 
-	private final static int DEFAULT_PAUSE_LENGTH = 5000; // 5000 milliseconds
-	private final static int SHORT_PAUSE_LENGTH = 500; // 5000 milliseconds
+	private final static int DEFAULT_PAUSE_LENGTH = 2500; // 2500 milliseconds
+	private final static int SHORT_PAUSE_LENGTH = 1500; // 1.5 second
 	private String STATE = "IDLE";
 	private String NODE_TYPE = null;
 	
@@ -50,7 +50,7 @@ public class DemoMode {
 		} catch (Exception err) { err.printStackTrace(); }
 	}
 	
-	public static void ALERT_WITH_DELAY (String message) {
+	public void ALERT_WITH_DELAY (String message) {
 		try {
 			System.out.println(" >> " + message);
 			Thread.sleep( DEFAULT_PAUSE_LENGTH );

@@ -50,18 +50,16 @@ public class Collector extends DemoMode {
 	}
 	
 	public Collector() throws IOException {
+		set_type("COLLECTOR");
 		SSLHandler.declareClientCert("SSL_Certificate","cits3002");
 		
 		// Initiate eCentWallet
 		this.eCentWallet = new ECentWallet( ECENTWALLET_FILE );
-		
-		// Fill the wallet
-		if(eCentWallet.isEmpty())
+		if (eCentWallet.isEmpty())
 			buyMoney();
+		ANNOUNCE(eCentWallet.displayBalance());
 		
-		eCentWallet.displayBalance();
-		
-		// set up message in the form FLAG;MSG (ie REQ;AMOUNT)
+		// Prepare the Collector Initiate message
 		outMessage = MessageFlag.C_INIT + ":DATA\n";
 
 		if(connectToDirector())
@@ -87,7 +85,7 @@ public class Collector extends DemoMode {
 			OutputStream outputstream = sslsocket.getOutputStream();
             OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
 
-			System.out.println("Sending Money Withdrawl Request..");
+			ALERT("Sending Money Withdrawl Request..");
 
 			outMessage = MessageFlag.BANK_WIT + ":100\n";
 
@@ -125,7 +123,7 @@ public class Collector extends DemoMode {
 			directorReader = new BufferedReader(dirinputstreamreader);
             directorWriter = new OutputStreamWriter(diroutputstream); 
 
-			System.out.println("Sending Director Initialization Request..");
+            ALERT("Connecting to Director..");
 
 			// write message to outputstreamwriter (Note: bufferedwriter isn't needed since we don't need to buffer system input)
 			directorWriter.write(outMessage + "\n");
@@ -143,7 +141,7 @@ public class Collector extends DemoMode {
 
 	private void sendDirectorData() throws IOException {
 		
-		System.out.println("Initiated with Director!");
+		ALERT("Connected! (Director)");
 		String temporary_eCent = eCentWallet.remove();
 
 		try{
@@ -159,13 +157,16 @@ public class Collector extends DemoMode {
 			// send data message = [ FLAG  :  DATA TYPE  ;  DATA  ;  ECENT  ]
 			outMessage = MessageFlag.EXAM_REQ + ":" + "DATA" + ";blahblahblah;" + temporary_eCent + "\n";
 
-			System.out.print("The message I'm sending for analysis is:\n" + outMessage);
-
 			directorWriter.write(outMessage); // send request to director (FLAG:TYPE;DATA;ECENT)
 			directorWriter.flush();
+			
+			ALERT("Request sent!");
+			ALERT("...");
 
-			inMessage = directorReader.readLine(); // read result returned by director
-			System.out.println("RESULT I PAID FOR: " + inMessage);
+			inMessage = directorReader.readLine(); // read result returned by directorALERTALERT
+			
+			ALERT("Response recieved!");
+			ALERT("RESULT: " + inMessage);
 
 			dirsslsocket.close();
 		}

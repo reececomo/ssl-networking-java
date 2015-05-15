@@ -21,6 +21,12 @@ public class Director extends DemoMode {
 	
 	private static final int PORT = 9998;
 	private SSLServerSocket director;
+	
+	private static final int DATA_TYPE = 0;
+	private static final int ADDR = 1;
+	private static final int DATA = 1;
+	private static final int ADDR_PORT = 2;
+	private static final int ECENT = 2;
 
 	private HashMap<String, HashSet<String>> analystPool;	// explained in constuctor
 	private HashSet<String> busyAnalyst;			// as above
@@ -34,28 +40,26 @@ public class Director extends DemoMode {
 	
 	//constructor
 	public Director ( int portNo ) {
+		set_type("DIRECTOR");
 		
 		analystPool = new HashMap<String, HashSet<String>>();		// hashmap of data types, storing all [address:socket] of analyst's assoc. with data type
 		busyAnalyst = new HashSet<String>();				// busy analysts address pool (all analysts in here are currently busy)
 
-
 		// SSL Certificate
-
 		SSLHandler.declareDualCert("SSL_Certificate","cits3002");
 		ExecutorService executorService = Executors.newFixedThreadPool(100);
+
+		ANNOUNCE("Starting director server");
 		
 		// Start Server and listen
 		if( this.startSocket(portNo) ) {
+			
 			while(this.socketIsListening){
 				try {	
 					SSLSocket clientSocket = (SSLSocket) director.accept();
 					executorService.execute(new DirectorClient ( clientSocket ));
-					System.out.println("New client");
 			
-				} catch (IOException err) {
-				
-					System.err.println("Error connecting client " + err);
-				}
+				} catch (IOException err) { System.err.println("Error connecting client " + err); }
 			}
 		}
 	}
@@ -67,7 +71,7 @@ public class Director extends DemoMode {
 			sf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
 			director = (SSLServerSocket) sf.createServerSocket( portNo );
 			
-			System.out.println("Director started on " + getIPAddress() + ":" + portNo );
+			ANNOUNCE("Director started on " + getIPAddress());
 			
 			return true;
 			
@@ -78,17 +82,6 @@ public class Director extends DemoMode {
 			return false;
 		}
 	}
-
-	
-	public String getIPAddress() {
-		try {
-			//Get IP Address
-			return InetAddress.getLocalHost().getHostAddress();
-		} catch (UnknownHostException e) {
-			return "UnknownHost";
-		}
-	}
-	
 
 	public class DirectorClient implements Runnable {
 
@@ -102,22 +95,22 @@ public class Director extends DemoMode {
 
 		public void run() {
 			try {
+				// IO Stream
 				InputStream inputstream = sslsocket.getInputStream();
 				InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-
 				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
-
 				OutputStream outputstream = sslsocket.getOutputStream();
             	OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
 		
-				String message = bufferedreader.readLine();
-				Message msg = new Message(message);
+            	// Read a line
+				String message_raw = bufferedreader.readLine();
 				
-				System.out.println("FLAG = " + msg.getFlag());
-				// this may be put in a protocol LATER
+				Message msg = new Message(message_raw);
+				String msg_flag = msg.getFlag();
+				String[] msg_data = msg.getData();
 
-				if(msg.getFlag().equals(MessageFlag.C_INIT)){		// Collector init
-					System.out.println("Collector Initialized..");
+				if(msg_flag.equals(MessageFlag.C_INIT)){		// Collector init
+					ALERT("Collector connected...");
 
 					if(analystPool.containsKey(msg.data)){
 						outputstreamwriter.write("TRUE\n");
@@ -126,54 +119,44 @@ public class Director extends DemoMode {
 					}
 					outputstreamwriter.flush();
 
-				}else if(msg.getFlag().equals(MessageFlag.A_INIT)){	// Analysis init
-				
-					// Analyst INIT message = [ INITFLAG  :  DATA TYPE  ;  ADDRESS  ;  PORT ]   where address/port is what analyst server is listening on
-					//					   t		 a	   p
-
-					String temp = msg.data;
-					String t = temp.split(";")[0];		// get analyst data type
-					String a = temp.split(";")[1];		// get analyst listening address
-					String p = temp.split(";")[2];		// get analyst listening port
+				}else if(msg_flag.equals(MessageFlag.A_INIT)){	// Analysis init
+					ALERT("Analyst connected...");
 					
-					if( !analystPool.containsKey(t) ){
+					if( !analystPool.containsKey(msg_data[DATA_TYPE]) ){
 						HashSet<String> set = new HashSet<String>();
-						set.add(a + ":" + p);		// add Host:Port of analyst to hashset
-						analystPool.put(t, set);	// add analyst to datatype pool and socket set
+						set.add(msg_data[ADDR] + ":" + msg_data[ADDR_PORT]);		// add Host:Port of analyst to hashset
+						analystPool.put(msg_data[DATA_TYPE], set);	// add analyst to datatype pool and socket set
 					}else{
-						analystPool.get(t).add(a + ":" + p);
+						analystPool.get(msg_data[DATA_TYPE]).add(msg_data[ADDR] + ":" + msg_data[ADDR_PORT]);
 					}
 				
-					System.out.println("Analyst Initialized with data type: " + t);
+					ALERT("Analyst initialized (" + msg_data[DATA_TYPE] + ")");
 
-				}else if(msg.getFlag().equals(MessageFlag.EXAM_REQ)){		// Analysis request (examination)
+				}else if(msg_flag.equals(MessageFlag.EXAM_REQ)){		// Analysis request (examination)
 
 					HashSet<String> disconnectedAnalyst = new HashSet<String>();
 
-					System.out.println("Data Analysis request recieved");
+					ALERT("Data Analysis request recieved");
 
 					boolean success = false;
-
-					String temp = msg.data;
-					String t = temp.split(";")[0];		// get collector data type
-					String d = temp.split(";")[1];		// get collector data
-					String c = temp.split(";")[2];		// get collector ecent
 					
-					HashSet<String> getAnalysts = analystPool.get(t);	// get analyst that match data type
+					HashSet<String> getAnalysts = analystPool.get(msg_data[DATA_TYPE]);	// get analyst that match data type
 
 					for(String address : getAnalysts){			// for each analyst in data type
 						if(!busyAnalyst.contains(address)){		// if their address isn't currently busy
 							
-							outmessage = d + ";" + c + "\n";
+							// Forward DATA + eCent (without data type)
+							outmessage = msg_data[DATA] + ";" + msg_data[ECENT] + "\n";
+							
 							if(sendDataToAnalyst(outmessage, address)){
 								if(outmessage != null){
 									outputstreamwriter.write(outmessage);
 									outputstreamwriter.flush();
-									System.out.println("Result successfully returned to collector");
+									ALERT("Result returned to collector");
 									success = true;
 									break;
 								}else 
-									System.out.println("Analyst crashed after recieving ecent.. trying next one");
+									ALERT("Analyst crashed after recieving ecent.. trying next one");
 							}else{
 								disconnectedAnalyst.add(address);	// add analyst to DCed set if connection fails
 							}
@@ -181,13 +164,11 @@ public class Director extends DemoMode {
 					}
 
 					if(!success)
-						System.out.println("Analysis could not be completed...");
+						ALERT("ERROR: Analysis could not be completed...");
 
-					if(!disconnectedAnalyst.isEmpty()){
-						for(String s : disconnectedAnalyst){
-							analystPool.get(t).remove(s);		// remove DCed analyst from pool
-						}
-					}
+					if(!disconnectedAnalyst.isEmpty())
+						for(String s : disconnectedAnalyst)
+							analystPool.get(msg_data[DATA_TYPE]).remove(s);		// remove DCed analyst from pool
 
 				}
 
@@ -214,11 +195,11 @@ public class Director extends DemoMode {
 				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
 
 				OutputStream outputstream = sslsocket.getOutputStream();
-       		     		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
+       		     OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
 
 				busyAnalyst.add(address);			// connected so add to busy analysts
 
-				System.out.println("Sending Data to Analyst on " + address);
+				ALERT("Sending Data to Analyst (" + address + ")");
 
 				outputstreamwriter.write(outmessage);		// send message to analyst
 				outputstreamwriter.flush();
@@ -228,10 +209,7 @@ public class Director extends DemoMode {
 				busyAnalyst.remove(address);	
 				return true;
 
-			}catch (IOException e)
-			{
-				System.out.println("Could not connect to Analyst on " + address + ", trying next one..");
-			}
+			}catch (IOException e) { ALERT("Disconnect: Could not connect to Analyst on " + address + ", trying next one..."); }
 
 			return false;
 		

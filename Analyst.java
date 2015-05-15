@@ -36,6 +36,7 @@ public class Analyst extends DemoMode {
 	private String inMsg;
 
 	public static void main(String[] args) throws IOException {
+		
 		// If IP Addresses given
 		if( args.length == 2 ) {
 			directorIPAddress = args[0];

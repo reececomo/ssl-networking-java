@@ -33,8 +33,12 @@ public class Bank extends DemoMode {
 	 * Bank 
 	 */
 
-	public static void main(String[] args) throws IOException{
-
+	public static void main(String[] args) throws IOException {
+		new Bank();
+	}
+	
+	public Bank() throws IOException {
+		set_type("BANK");
 		SSLHandler.declareServerCert("SSL_Certificate","cits3002");
 		
 		bankStore = new ECentWallet( ECENTWALLET_FILE );
@@ -42,34 +46,31 @@ public class Bank extends DemoMode {
 		//Generates validation key for hashing
 		SecureRandom random = new SecureRandom();
 		validationKey = random.nextInt(32);
+		
+		ANNOUNCE("Starting bank server");
 
 		try {
 			// Use the SSLSSFactory to create a SSLServerSocket to create a SSLSocket
 			SSLServerSocketFactory sslserversocketfactory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
 			sslserversocket = (SSLServerSocket)sslserversocketfactory.createServerSocket(9999);
-			System.out.println("Bank Server Started");
 
-		} catch (IOException e) {
-			
-        	System.out.println("Error listening on port 9999 or listening for a connection");
-        	System.out.println(e.getMessage());
-    	}
+		} catch (IOException e) { System.out.println("Could not create server on port " + bankPort); }
 
+		ANNOUNCE("Bank started on " + getIPAddress());
+		
 		while(true){
 			SSLSocket sslsocket = null;
 			try {
 				sslsocket = (SSLSocket)sslserversocket.accept();
+				ALERT("Receiving new request!");
 
-			}catch (IOException e){
-				System.out.println("Error connecting to client");
-				System.out.println(e.getMessage());
-			}
+			}catch (IOException e){ System.out.println("Error connecting client"); }
 
 			new Thread( new bankConnection(sslsocket) ).start();	// start new thread
 		}
 	}
 
-	private static class bankConnection implements Runnable {
+	private class bankConnection implements Runnable {
 
 		protected SSLSocket sslsocket = null;
 
@@ -81,45 +82,45 @@ public class Bank extends DemoMode {
 			try {
 				InputStream inputstream = sslsocket.getInputStream();
 				InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-
 				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
-
 				OutputStream outputstream = sslsocket.getOutputStream();
             	OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
+            	
 		
 				String message = bufferedreader.readLine();			// get message from client
-				Message msg = new Message(message);				
+				Message msg = new Message(message);
+				String msg_flag = msg.getFlag();
 
-				if(msg.getFlag().equals(MessageFlag.BANK_WIT)){			// WITHDRAWL FLAG HANDLING
+				if(msg_flag.equals(MessageFlag.BANK_WIT)){			// WITHDRAWL FLAG HANDLING
 
-					System.out.println("Collector connected\nWithdrawing money..");
-					String amount = msg.data;
-
-					// Ecent encryption
-					int am = Integer.parseInt(amount);
-	
-					String ecent;
-					for(int i=0; i<am; i++){
-						ecent = generateEcent() + "\n";
-						outputstreamwriter.write(ecent);
-						outputstreamwriter.flush();
-					}
-					System.out.println("Money Sent");
-
-				}else if(msg.getFlag().equals(MessageFlag.BANK_DEP)){		// DEPOSIT FLAG HANDLING
+					ALERT("Collector connected  -->  Withdrawing money");
 					
-					System.out.println("Analyst connected\nDepositing money..");
+					int amount = Integer.parseInt(msg.data);
+					
+					ALERT("Generating " + amount + " eCents!");
+	
+					for(int i=0; i<amount; i++)
+						outputstreamwriter.write( generateEcent() + "\n" );
+					
+					outputstreamwriter.flush();
+
+					ALERT("Money sent");
+
+				}else if(msg_flag.equals(MessageFlag.BANK_DEP)){		// DEPOSIT FLAG HANDLING
+
+					ALERT("Analyst connected  -->  Depositing money");
 
 					//Check if eCent is in valid eCent set
 					if( bankStore.contains(msg.data) ) {
 						
-						ALERT_WITH_DELAY("Accepting valid eCent");
+						ALERT("Depositing valid eCent");
+						ALERT("Sending acknowledgement to Analyst!");
 						outputstreamwriter.write("VALID\n");	
 						bankStore.remove(msg.data);
 						
 					} else {
 						
-						ALERT_WITH_DELAY("Rejecting invalid eCent");
+						ALERT("Rejecting invalid eCent");
 						outputstreamwriter.write("INVALID\n");
 					}
 
@@ -128,12 +129,10 @@ public class Bank extends DemoMode {
 				}
 
 				sslsocket.close();
+				
+				ALERT("Request finished!");
 
-			} catch (IOException e)
-        		{
-           	 		System.out.println("Error listening on port 9999 or listening for a connection");
-				System.out.println(e.getMessage());
-        		}
+			} catch (IOException e) { System.out.println("Error listening on port: " + bankPort); }
 		}
 	}
 

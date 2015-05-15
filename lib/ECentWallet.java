@@ -67,7 +67,7 @@ public class ECentWallet {
 	// Additional helper methods
 	public boolean isEmpty() { return eCents.size() == 0; }
 	public int getBalance() { return eCents.size(); }
-	public void displayBalance() { System.out.println("You have " + this.getBalance() + " eCents in your wallet!"); }
+	public String displayBalance() { return "You have " + this.getBalance() + " eCents in your wallet!"; }
 	
 	public HashSet<String> extractContents() { return eCents; }
 	public void saveContents(HashSet<String> contents) {
