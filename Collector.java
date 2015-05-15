@@ -124,7 +124,7 @@ public class Collector
 			System.out.println("Sending Director Initialization Request..");
 
 			// write message to outputstreamwriter (Note: bufferedwriter isn't needed since we don't need to buffer system input)
-			directorWriter.write(outMessage);
+			directorWriter.write(outMessage + "\n");
 			directorWriter.flush();
 
 			inMessage = directorReader.readLine(); 			
@@ -140,23 +140,35 @@ public class Collector
 	private void sendDirectorData() throws IOException {
 		
 		System.out.println("Initiated with Director!");
+		String temporary_eCent = eCentWallet.remove();
 
 		try{
+			dirsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+			dirsslsocket = (SSLSocket) dirsf.createSocket(directorIPAddress, dirPort);
+
+			dirinputstream = dirsslsocket.getInputStream();
+			dirinputstreamreader = new InputStreamReader(dirinputstream);
+			diroutputstream = dirsslsocket.getOutputStream();
+
+			directorReader = new BufferedReader(dirinputstreamreader);
+            directorWriter = new OutputStreamWriter(diroutputstream); 
 			// send data message = [ FLAG  :  DATA TYPE  ;  DATA  ;  ECENT  ]
-			outMessage = MessageFlag.EXAM_REQ + ":" + "DATA" + ";blahblahblah;" + eCentWallet.remove() + "\n";
+			outMessage = MessageFlag.EXAM_REQ + ":" + "DATA" + ";blahblahblah;" + temporary_eCent + "\n";
 
 			System.out.print("The message I'm sending for analysis is:\n" + outMessage);
 
 			directorWriter.write(outMessage); // send request to director (FLAG:TYPE;DATA;ECENT)
 			directorWriter.flush();
 
-			//inMessage = directorReader.readLine(); // read result returned by director
-			//System.out.println("RESULT I PAID FOR: " + inMessage);
+			inMessage = directorReader.readLine(); // read result returned by director
+			System.out.println("RESULT I PAID FOR: " + inMessage);
 
 			dirsslsocket.close();
 		}
 		catch (IOException e){
-			System.err.println("Error sending data to Director");
+			System.err.println("Error sending data to Director" + e);
+			// Put eCent back in wallet if fucked up
+			this.eCentWallet.add( temporary_eCent );
 		}
 
 	}

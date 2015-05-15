@@ -42,7 +42,7 @@ public class Analyst {
 			directorIPAddress = args[0];
 			bankIPAddress = args[1];
 		}
-		
+
 		// Run analyst
 		Analyst analyst = new Analyst();
 	}
@@ -111,8 +111,9 @@ public class Analyst {
 					outMsg = INVALID_DATA_MSG_RESPONSE; // eCent is invalid
 	
 				this.delayWithMessage("Deposited. Returning result to Director:" + outMsg);
-				writer.write(outMsg);
+				writer.write(outMsg + "\n");
 				writer.flush();
+
 			} else
 				System.err.println("Could not decrypt message!");
 		}
@@ -208,9 +209,7 @@ public class Analyst {
 
 			this.delayWithMessage("Message recieved: " + inMsg);
 
-			if(inMsg.equals("TRUE"))
-				return true; 	// successful deposit
-			else return false;
+			return inMsg.equals("TRUE");
 
 		}catch (IOException e) {
 			System.err.println("Could not achieve IO connection");
