@@ -93,7 +93,7 @@ public class Director {
 
 	public class DirectorClient implements Runnable {
 
-		private String inPacket, outPacket;
+		private String inmessage, outmessage;
 
 		protected SSLSocket sslsocket = null;
 
@@ -109,12 +109,10 @@ public class Director {
 				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
 
 				OutputStream outputstream = sslsocket.getOutputStream();
-            			OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
+            	OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
 		
-				String packet = bufferedreader.readLine();
-			//	System.out.println(packet);
-
-				Message msg = new Message(packet);
+				String message = bufferedreader.readLine();
+				Message msg = new Message(message);
 				
 				System.out.println("FLAG = " + msg.getFlag());
 				// this may be put in a protocol LATER
@@ -128,11 +126,10 @@ public class Director {
 						outputstreamwriter.write("FALSE\n");
 					}
 					outputstreamwriter.flush();
-					sslsocket.close();
 
 				}else if(msg.getFlag().equals(MessageFlag.A_INIT)){	// Analysis init
 				
-					// Analyst INIT packet = [ INITFLAG  :  DATA TYPE  ;  ADDRESS  ;  PORT ]   where address/port is what analyst server is listening on
+					// Analyst INIT message = [ INITFLAG  :  DATA TYPE  ;  ADDRESS  ;  PORT ]   where address/port is what analyst server is listening on
 					//					   t		 a	   p
 
 					String temp = msg.data;
@@ -149,8 +146,6 @@ public class Director {
 					}
 				
 					System.out.println("Analyst Initialized with data type: " + t);
-
-					sslsocket.close();
 
 				}else if(msg.getFlag().equals(MessageFlag.EXAM_REQ)){		// Analysis request (examination)
 
@@ -170,10 +165,10 @@ public class Director {
 					for(String address : getAnalysts){			// for each analyst in data type
 						if(!busyAnalyst.contains(address)){		// if their address isn't currently busy
 							
-							outPacket = d + ";" + c + "\n";
-							if(sendDataToAnalyst(outPacket, address)){
-								if(outPacket != null){
-									outputstreamwriter.write(outPacket);
+							outmessage = d + ";" + c + "\n";
+							if(sendDataToAnalyst(outmessage, address)){
+								if(outmessage != null){
+									outputstreamwriter.write(outmessage);
 									outputstreamwriter.flush();
 									System.out.println("Result successfully returned to collector");
 									success = true;
@@ -186,23 +181,27 @@ public class Director {
 						}
 					}
 
-					if(!success) System.out.println("Analysis could not be completed...");
+					if(!success)
+						System.out.println("Analysis could not be completed...");
 
 					if(!disconnectedAnalyst.isEmpty()){
 						for(String s : disconnectedAnalyst){
 							analystPool.get(t).remove(s);		// remove DCed analyst from pool
 						}
 					}
-					sslsocket.close();
+
 				}
 
+				sslsocket.close();
+
 			} catch (IOException e){
-           	 		System.out.println("Error listening on port or listening for a connection");
+           	 	System.out.println("Error listening on port or listening for a connection");
 				System.out.println(e.getMessage());
-        		}
+    		
+    		}
 		}
 	
-		private boolean sendDataToAnalyst(String packet, String address){
+		private boolean sendDataToAnalyst(String message, String address){
 			
 			String host = address.split(":")[0];
 			int port = Integer.parseInt(address.split(":")[1]);
@@ -222,10 +221,10 @@ public class Director {
 
 				System.out.println("Sending Data to Analyst on " + address);
 
-				outputstreamwriter.write(outPacket);		// send packet to analyst
+				outputstreamwriter.write(outmessage);		// send message to analyst
 				outputstreamwriter.flush();
 
-				outPacket = bufferedreader.readLine(); // get packet to forward to collector
+				outmessage = bufferedreader.readLine(); // get message to forward to collector
 
 				busyAnalyst.remove(address);	
 				return true;

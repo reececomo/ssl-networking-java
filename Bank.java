@@ -85,10 +85,10 @@ public class Bank
 				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
 
 				OutputStream outputstream = sslsocket.getOutputStream();
-            			OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
+            	OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
 		
-				String packet = bufferedreader.readLine();			// get message from client
-				Message msg = new Message(packet);				
+				String message = bufferedreader.readLine();			// get message from client
+				Message msg = new Message(message);				
 
 				if(msg.getFlag().equals(MessageFlag.BANK_WIT)){			// WITHDRAWL FLAG HANDLING
 

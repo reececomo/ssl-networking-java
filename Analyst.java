@@ -26,8 +26,8 @@ public class Analyst {
 	private final static int DATA = 0;
 	private final static int ECENT = 1;
 	
-	private String directorIPAddress;
-	private String bankIPAddress;
+	private static String directorIPAddress = "localhost";
+	private static String bankIPAddress = "localhost";
 
 	private SSLServerSocket sslserversocket = null;
 	private int localPort;
@@ -37,21 +37,17 @@ public class Analyst {
 	private String inMsg;
 
 	public static void main(String[] args) throws IOException {
-		Analyst analyst;
-		
-		// If parameters given, declare analyst with dirIP and bankIP
-		if( args.length == 2 )
-			analyst = new Analyst(args[0], args[1]);
-		else
-			analyst = new Analyst("localhost","localhost");
+		// If IP Addresses given
+		if( args.length == 2 ) {
+			directorIPAddress = args[0];
+			bankIPAddress = args[1];
+		}
+
+		// Run analyst
+		Analyst analyst = new Analyst();
 	}
 
-	public Analyst(String dirIP, String bankIP) throws IOException {
-		
-		// Declare Director/Bank
-		this.directorIPAddress = dirIP;
-		this.bankIPAddress = bankIP;
-		
+	public Analyst() throws IOException {
 		// Declare SSL Certificate for both server and client connections
 		SSLHandler.declareDualCert("cits3002_01Keystore","cits3002");
 		
@@ -115,8 +111,9 @@ public class Analyst {
 					outMsg = INVALID_DATA_MSG_RESPONSE; // eCent is invalid
 	
 				this.delayWithMessage("Deposited. Returning result to Director:" + outMsg);
-				writer.write(outMsg);
+				writer.write(outMsg + "\n");
 				writer.flush();
+
 			} else
 				System.err.println("Could not decrypt message!");
 		}
@@ -164,6 +161,7 @@ public class Analyst {
 
 		}catch (IOException e) {
 			System.err.println("Could not connect to Director");
+			e.printStackTrace();
 			return false;
 		}
 	}
@@ -211,9 +209,7 @@ public class Analyst {
 
 			this.delayWithMessage("Message recieved: " + inMsg);
 
-			if(inMsg.equals("TRUE"))
-				return true; 	// successful deposit
-			else return false;
+			return inMsg.equals("TRUE");
 
 		}catch (IOException e) {
 			System.err.println("Could not achieve IO connection");

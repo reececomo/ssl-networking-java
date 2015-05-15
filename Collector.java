@@ -13,22 +13,40 @@ import javax.net.ssl.*;
 
 public class Collector
 {
-	private final int dirPort = 9998;
-	private final int bankPort = 9999;
+	private final static int dirPort = 9998;
+	private final static int bankPort = 9999;
 
 	private final static String ECENTWALLET_FILE = "ecents.wallet";
 
-	private String outPacket;
-	private String inPacket;
+	private String outMessage;
+	private String inMessage;
+
+	private static String directorIPAddress = "localhost";
+	private static String bankIPAddress = "localhost";
 
 	private ECentWallet eCentWallet; // file for holding ecents
+
+	private SSLSocketFactory dirsf;
+	private SSLSocket dirsslsocket;
+	private OutputStreamWriter directorWriter;
+	private BufferedReader directorReader;
+	private InputStream dirinputstream;
+	private InputStreamReader dirinputstreamreader;
+	private OutputStream diroutputstream;
 	
 	
 	/**
 	 * Collector
 	 */
 	public static void main(String[] args) throws IOException {
-		Collector myCol = new Collector();
+		// If IP Addresses given
+		if( args.length == 2 ) {
+			directorIPAddress = args[0];
+			bankIPAddress = args[1];
+		}
+		
+		// Start collector
+		Collector collector = new Collector();
 	}
 	
 	public Collector() throws IOException {
@@ -39,8 +57,8 @@ public class Collector
 		if(eCentWallet.isEmpty()){ buyMoney(); }
 		this.eCentWallet.displayBalance();
 		
-		// set up packet in the form FLAG;MSG (ie REQ;AMOUNT)
-		outPacket = MessageFlag.C_INIT + ":DATA\n";
+		// set up message in the form FLAG;MSG (ie REQ;AMOUNT)
+		outMessage = MessageFlag.C_INIT + ":DATA\n";
 
 		if(connectToDirector())
 			sendDirectorData();
@@ -51,7 +69,7 @@ public class Collector
 		try{
 			// set up Socket to bank
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", bankPort);
+			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket(bankIPAddress, bankPort);
 
 			// (FOR RECIEVING MONEY) -
 			// Create an input stream (FOR RECIEVING MONEY) (bytes -> chars)
@@ -63,21 +81,21 @@ public class Collector
 			// (FOR SENDING REQUEST) -
 			// prepare output stream (strings -> bytes)
 			OutputStream outputstream = sslsocket.getOutputStream();
-            		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
+            OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
 
 			System.out.println("Sending Money Withdrawl Request..");
 
-			outPacket = MessageFlag.BANK_WIT + ":100\n";
+			outMessage = MessageFlag.BANK_WIT + ":100\n";
 
-			outputstreamwriter.write(outPacket);
+			outputstreamwriter.write(outMessage);
 			outputstreamwriter.flush();
 			
 			String[] eCentBuffer = new String[100];
 
 			int index = 0;
-			while((inPacket = bufferedreader.readLine()) != null){
-			//	System.out.println(index + " = " + inPacket);	
-				eCentBuffer[index] = inPacket;
+			while((inMessage = bufferedreader.readLine()) != null){
+			//	System.out.println(index + " = " + inMessage);	
+				eCentBuffer[index] = inMessage;
 				index++;
 			}
 
@@ -85,7 +103,7 @@ public class Collector
 
 		}catch (IOException e)
 		{
-			System.err.println("Could not achieve IO connection");
+			System.err.println("Could not connect to Bank");
 			System.exit(1);
 		}
 	}
@@ -93,64 +111,64 @@ public class Collector
 	// Returns TRUE iff director can handle data analysis (has analyst(s) availiable)
 	private boolean connectToDirector() throws IOException{
 		try{
-			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", dirPort);
+			dirsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+			dirsslsocket = (SSLSocket) dirsf.createSocket(directorIPAddress, dirPort);
 
-			InputStream inputstream = sslsocket.getInputStream();
-			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
+			dirinputstream = dirsslsocket.getInputStream();
+			dirinputstreamreader = new InputStreamReader(dirinputstream);
+			diroutputstream = dirsslsocket.getOutputStream();
 
-			OutputStream outputstream = sslsocket.getOutputStream();
-            		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
+			directorReader = new BufferedReader(dirinputstreamreader);
+            directorWriter = new OutputStreamWriter(diroutputstream); 
 
 			System.out.println("Sending Director Initialization Request..");
 
-			// write packet to outputstreamwriter (Note: bufferedwriter isn't needed since we don't need to buffer system input)
-			outputstreamwriter.write(outPacket);
-			outputstreamwriter.flush();
+			// write message to outputstreamwriter (Note: bufferedwriter isn't needed since we don't need to buffer system input)
+			directorWriter.write(outMessage + "\n");
+			directorWriter.flush();
 
-			inPacket = bufferedreader.readLine(); 			
+			inMessage = directorReader.readLine(); 			
 
-			if(inPacket.equals("TRUE"))
-				return true;
-			else return false;
+			return inMessage.equals("TRUE");
 
-		}catch (IOException e)
-		{
-			System.err.println("Could not achieve IO connection");
-			System.exit(1);
+		} catch (IOException e) {
+			System.err.println("Could not connect to Director");
 		}
 		return false;
 	}
 
-	private void sendDirectorData() throws IOException{
+	private void sendDirectorData() throws IOException {
+		
+		System.out.println("Initiated with Director!");
+		String temporary_eCent = eCentWallet.remove();
+
 		try{
-			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-			SSLSocket sslsocket = (SSLSocket)sslsf.createSocket("localhost", dirPort);
+			dirsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+			dirsslsocket = (SSLSocket) dirsf.createSocket(directorIPAddress, dirPort);
 
-			InputStream inputstream = sslsocket.getInputStream();
-			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
+			dirinputstream = dirsslsocket.getInputStream();
+			dirinputstreamreader = new InputStreamReader(dirinputstream);
+			diroutputstream = dirsslsocket.getOutputStream();
 
-			OutputStream outputstream = sslsocket.getOutputStream();
-            		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
+			directorReader = new BufferedReader(dirinputstreamreader);
+            directorWriter = new OutputStreamWriter(diroutputstream); 
+			// send data message = [ FLAG  :  DATA TYPE  ;  DATA  ;  ECENT  ]
+			outMessage = MessageFlag.EXAM_REQ + ":" + "DATA" + ";blahblahblah;" + temporary_eCent + "\n";
 
-			// send data packet = [ FLAG  :  DATA TYPE  ;  DATA  ;  ECENT  ]
-			outPacket = MessageFlag.EXAM_REQ + ":" + "DATA" + ";blahblahblah;" + eCentWallet.remove() + "\n";
+			System.out.print("The message I'm sending for analysis is:\n" + outMessage);
 
-			System.out.print("THE PACKET I'M SENDING FOR ANALYSIS IS:\n" + outPacket);
+			directorWriter.write(outMessage); // send request to director (FLAG:TYPE;DATA;ECENT)
+			directorWriter.flush();
 
-			outputstreamwriter.write(outPacket); // send request to director (FLAG:TYPE;DATA;ECENT)
-			outputstreamwriter.flush();
+			inMessage = directorReader.readLine(); // read result returned by director
+			System.out.println("RESULT I PAID FOR: " + inMessage);
 
-			inPacket = bufferedreader.readLine(); // read result returned by director
-			System.out.println("RESULT I PAID FOR: " + inPacket);
-
-			sslsocket.close();
+			dirsslsocket.close();
 		}
 		catch (IOException e){
-			System.err.println("Could not achieve IO connection");
-			System.exit(1);
+			System.err.println("Error sending data to Director" + e);
+			// Put eCent back in wallet if fucked up
+			this.eCentWallet.add( temporary_eCent );
 		}
 
 	}
