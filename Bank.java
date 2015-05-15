@@ -35,7 +35,7 @@ public class Bank extends DemoMode {
 
 	public static void main(String[] args) throws IOException{
 
-		SSLHandler.declareServerCert("cits3002_01Keystore","cits3002");
+		SSLHandler.declareServerCert("SSL_Certificate","cits3002");
 		
 		bankStore = new ECentWallet( ECENTWALLET_FILE );
     	

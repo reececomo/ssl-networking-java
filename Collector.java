@@ -50,7 +50,7 @@ public class Collector extends DemoMode {
 	}
 	
 	public Collector() throws IOException {
-		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
+		SSLHandler.declareClientCert("SSL_Certificate","cits3002");
 		
 		// Initiate eCentWallet
 		this.eCentWallet = new ECentWallet( ECENTWALLET_FILE );

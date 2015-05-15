@@ -13,7 +13,7 @@ import lib.*;
 /**
  * Director Node class
  * 
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alex Popoff
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexaner Popoff-Asotoff
  * @version 5.9.15
  *
  */
@@ -41,8 +41,7 @@ public class Director extends DemoMode {
 
 		// SSL Certificate
 
-		SSLHandler.declareClientCert("cits3002_01Keystore","cits3002");
-		SSLHandler.declareServerCert("cits3002_01Keystore","cits3002");
+		SSLHandler.declareDualCert("SSL_Certificate","cits3002");
 		ExecutorService executorService = Executors.newFixedThreadPool(100);
 		
 		// Start Server and listen

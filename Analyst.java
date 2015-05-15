@@ -51,7 +51,7 @@ public class Analyst extends DemoMode {
 		set_type("ANALYST");
 		
 		// Declare SSL Certificate for both server and client connections
-		SSLHandler.declareDualCert("cits3002_01Keystore","cits3002");
+		SSLHandler.declareDualCert("SSL_Certificate","cits3002");
 
 		ANNOUNCE("Connecting to Director");
 		
