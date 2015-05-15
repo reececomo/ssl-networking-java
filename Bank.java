@@ -14,8 +14,7 @@ import lib.*;
  * @version 5.9.15
  */
 
-public class Bank
-{
+public class Bank extends DemoMode {
     
 	private static final int bankPort = 9999;
 	 
@@ -27,7 +26,8 @@ public class Bank
 
 	private static SSLServerSocket sslserversocket = null;
 
-	private static HashSet<String> bankStore;
+	private static ECentWallet bankStore;
+	private final static String ECENTWALLET_FILE = "bank.wallet";
 
 	/**
 	 * Bank 
@@ -36,12 +36,12 @@ public class Bank
 	public static void main(String[] args) throws IOException{
 
 		SSLHandler.declareServerCert("cits3002_01Keystore","cits3002");
+		
+		bankStore = new ECentWallet( ECENTWALLET_FILE );
     	
-    		//Generates validation key for hashing
-    		SecureRandom random = new SecureRandom();
-    		validationKey= random.nextInt(32);
-
-		bankStore = new HashSet<String>();		// Set of all valid ecent hashes
+		//Generates validation key for hashing
+		SecureRandom random = new SecureRandom();
+		validationKey = random.nextInt(32);
 
 		try {
 			// Use the SSLSSFactory to create a SSLServerSocket to create a SSLSocket
@@ -49,11 +49,11 @@ public class Bank
 			sslserversocket = (SSLServerSocket)sslserversocketfactory.createServerSocket(9999);
 			System.out.println("Bank Server Started");
 
-		} catch (IOException e)
-        	{
-            		System.out.println("Error listening on port 9999 or listening for a connection");
-			System.out.println(e.getMessage());
-        	}
+		} catch (IOException e) {
+			
+        	System.out.println("Error listening on port 9999 or listening for a connection");
+        	System.out.println(e.getMessage());
+    	}
 
 		while(true){
 			SSLSocket sslsocket = null;
@@ -110,15 +110,20 @@ public class Bank
 					
 					System.out.println("Analyst connected\nDepositing money..");
 
-					//Check if Ecent is in valid Ecent set
-					if(bankStore.contains(msg.data)){
-						outputstreamwriter.write("TRUE\n");	
+					//Check if eCent is in valid eCent set
+					if( bankStore.contains(msg.data) ) {
+						
+						ALERT_WITH_DELAY("Accepting valid eCent");
+						outputstreamwriter.write("VALID\n");	
 						bankStore.remove(msg.data);
+						
+					} else {
+						
+						ALERT_WITH_DELAY("Rejecting invalid eCent");
+						outputstreamwriter.write("INVALID\n");
 					}
-					else outputstreamwriter.write("FALSE\n");
 
 					outputstreamwriter.flush();
-					System.out.println("Money Deposited");
 				
 				}
 

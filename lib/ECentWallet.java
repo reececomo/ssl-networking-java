@@ -30,6 +30,17 @@ public class ECentWallet {
 		loadWallet(); // load from file (on instantiation)
 	}
 	
+	public boolean contains(String eCent) {
+		return eCents.contains(eCent);
+	}
+	
+	public boolean remove(String eCent) {
+		if (eCents.contains(eCent))
+			return eCents.remove(eCent);
+		
+		return false;
+	}
+	
 	// Add new eCent (and sync by default)
 	public void add(String eCent) { this.add(eCent,true); }
 	
@@ -57,6 +68,12 @@ public class ECentWallet {
 	public boolean isEmpty() { return eCents.size() == 0; }
 	public int getBalance() { return eCents.size(); }
 	public void displayBalance() { System.out.println("You have " + this.getBalance() + " eCents in your wallet!"); }
+	
+	public HashSet<String> extractContents() { return eCents; }
+	public void saveContents(HashSet<String> contents) {
+		eCents = contents;
+		this.saveWallet();
+	}
 	
 	// Hard disk methods
 	private boolean loadWallet() throws IOException {
