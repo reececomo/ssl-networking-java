@@ -1,6 +1,11 @@
 # Networking Project
 ##### by Caleb F, Jesse F, Reece N and Alexander PA
 
+####Running Program
+- **Compile** - <code>javac *.java</code>
+- **Execute DIR** - <code>java Director</code>
+- **Execute COL** - <code>java Collector *ip_address1* *ip_address2*</code>
+
 ##0 - TODO List
 #####0.1 High
 - ***Collector***: *Write some data for the collectors to collect*
