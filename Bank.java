@@ -85,7 +85,7 @@ public class Bank
 				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
 
 				OutputStream outputstream = sslsocket.getOutputStream();
-            			OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
+            	OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
 		
 				String message = bufferedreader.readLine();			// get message from client
 				Message msg = new Message(message);				
