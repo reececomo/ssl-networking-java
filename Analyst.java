@@ -1,26 +1,25 @@
 import java.io.*;
 
-import lib.*;
-
 import java.security.*;
 import java.util.*;
+import javax.net.*;
+import javax.net.ssl.*;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-import javax.net.*;
-import javax.net.ssl.*;
+import lib.*;
 
 /**
  * Analyst Class for analysing data
  * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
  * @version 5.9.15
  */
-public class Analyst {
+
+public class Analyst extends DemoMode {
 	
 	private final static int dirPort = 9998;
 	private final static int bankPort = 9999;
-	private final static int DEFAULT_PAUSE_LENGTH = 5000; // 5000 milliseconds
-	private final static String INVALID_DATA_MSG_RESPONSE = "FALSEINVALID\n";
+	private final static String INVALID_DATA_MSG_RESPONSE = "INVALID\n";
 	
 	// for accessing parts of a message in an array
 	private final static int DATA = 0;
@@ -44,20 +43,26 @@ public class Analyst {
 		}
 
 		// Run analyst
-		Analyst analyst = new Analyst();
+		new Analyst();
 	}
 
 	public Analyst() throws IOException {
+		// Declare the node type for Demo mode
+		set_type("ANALYST");
+		
 		// Declare SSL Certificate for both server and client connections
 		SSLHandler.declareDualCert("cits3002_01Keystore","cits3002");
+
+		ANNOUNCE("Connecting to Director");
 		
 		while(this.isRunning) {
+			
 			// If the socket doesn't deploy then
 			//  retry the connection
 			if(deployLocalSocket())
 				this.run();
 			else
-				this.delayWithMessage("Retrying connection...");
+				ALERT_WITH_DELAY("Retrying connection...");
 		}
 		
 	}
@@ -82,36 +87,39 @@ public class Analyst {
 	}
 
 	private void run() throws IOException {
+		
 		while (this.isRunning) {
-			// Accept a new connection
 			SSLSocket sslSocket = null;
+			String[] message;
+			
 			try {
-				System.out.println("Awaiting connection from Director...");
+				// Recieve a new connection
+				ANNOUNCE("Idle (Awaiting request from Director)");
 				sslSocket = (SSLSocket)sslserversocket.accept();
-				System.out.println("Director connected. ");
+				ANNOUNCE("Receiving request");
+				
 			} catch (IOException err) {
 				System.err.println(err.getMessage());
 			}
 
-			// Prepare the io streams
+			// IO Buffers
 			InputStream is = sslSocket.getInputStream();
 			BufferedReader reader = new BufferedReader( new InputStreamReader(is) );
 			OutputStreamWriter writer = new OutputStreamWriter( sslSocket.getOutputStream() );
-       	
-       			// Read a line
+			
+       		// Accept input
 			this.inMsg = reader.readLine();
-			String[] message;
-			if ((message = decryptMessage(this.inMsg)) != null) {
+			
+			if ((message = decryptMessage(this.inMsg)) != null)
+			{
+				ALERT("Receiving payment");
 				
-				this.delayWithMessage("Preparing to deposit.");
-	
-				if (this.depositMoney( message[ ECENT ] ))
-					outMsg = this.analyseData("PARTY", message[ DATA ] );
+				if ( depositMoney( message[ ECENT ] ))
+					outMsg = analyseData("PARTY", message[ DATA ] );
 				else
 					outMsg = INVALID_DATA_MSG_RESPONSE; // eCent is invalid
-	
-				this.delayWithMessage("Deposited. Returning result to Director:" + outMsg);
-				writer.write(outMsg + "\n");
+				
+				writer.write(outMsg+"\n");
 				writer.flush();
 
 			} else
@@ -147,7 +155,7 @@ public class Analyst {
 			OutputStream outputstream = sslsocket.getOutputStream();
             		OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
 	
-			System.out.println("Sending Director Initialization..");
+			ANNOUNCE("Registering availability with Director");
 
 			// Analyst INIT message = [ INITFLAG  :  DATA TYPE  ;  ADDRESS  ;  PORT ]	address/port analyst is listening on
 			outMsg = MessageFlag.A_INIT + ":" + "DATA" + ";" + getIPAddress() + ";" + Integer.toString(localPort) + "\n";
@@ -161,55 +169,41 @@ public class Analyst {
 
 		}catch (IOException e) {
 			System.err.println("Could not connect to Director");
-			e.printStackTrace();
 			return false;
 		}
 	}
 
-	public String getIPAddress() {
-		try {
-			//Get IP Address
-			return InetAddress.getLocalHost().getHostAddress();
-		} catch (UnknownHostException e) {
-			return "UnknownHost";
-		}
-	}
-	
-	private void delayWithMessage(String message) {
-		try {
-			System.out.println(">> " + message);
-			Thread.sleep( DEFAULT_PAUSE_LENGTH );
-			
-		} catch (Exception err) { err.printStackTrace(); }
-	}
-
-
 	// deposit eCent in bank
 	private boolean depositMoney(String eCent) throws IOException {
 		try{
-			// set up Socket to bank
+			ALERT("Contacting Bank");
+			
+			// SSL Socket
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
 			SSLSocket sslSocket = (SSLSocket)sslsf.createSocket(bankIPAddress, bankPort); 
 
+			// Create input buffer
 			InputStream inputstream = sslSocket.getInputStream();
 			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
 			BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
 
-			System.out.println("Sending eCent deposit request...");
-
+			// Create output stream
 			OutputStream outputStream = sslSocket.getOutputStream();
 			OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream); 	
+
+			ALERT("Sending eCent deposit...");
 		
-			outMsg = MessageFlag.BANK_DEP + ":" + eCent + "\n";
-
-			outputStreamWriter.write(outMsg);		// send ecent to bank
+			// Send a bank deposit with the eCent
+			outputStreamWriter.write(MessageFlag.BANK_DEP + ":" + eCent + "\n"); // send eCent to bank
 			outputStreamWriter.flush();
+			
+			ALERT("(Awaiting confirmation)");
+			inMsg = bufferedreader.readLine(); // receive confirmation
 
-			inMsg = bufferedreader.readLine();		// recieve confirmation
+			ALERT("Response: " + inMsg);
 
-			this.delayWithMessage("Message recieved: " + inMsg);
-
-			return inMsg.equals("TRUE");
+			// If valid, return true
+			return inMsg.equals("VALID");
 
 		}catch (IOException e) {
 			System.err.println("Could not achieve IO connection");

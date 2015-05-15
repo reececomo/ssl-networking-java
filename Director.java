@@ -17,7 +17,7 @@ import lib.*;
  * @version 5.9.15
  *
  */
-public class Director {
+public class Director extends DemoMode {
 	
 	private static final int PORT = 9998;
 	private SSLServerSocket director;

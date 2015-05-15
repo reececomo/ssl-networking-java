@@ -1,9 +1,9 @@
 import java.io.*;
-import lib.*;
 import java.util.Random;
-
 import javax.net.*;
 import javax.net.ssl.*;
+
+import lib.*;
 
 /**
  * Collector Class
@@ -11,12 +11,12 @@ import javax.net.ssl.*;
  * @version 5.9.15
  */
 
-public class Collector
-{
+public class Collector extends DemoMode {
+
 	private final static int dirPort = 9998;
 	private final static int bankPort = 9999;
 
-	private final static String ECENTWALLET_FILE = "ecents.wallet";
+	private final static String ECENTWALLET_FILE = "collector.wallet";
 
 	private String outMessage;
 	private String inMessage;
@@ -54,8 +54,12 @@ public class Collector
 		
 		// Initiate eCentWallet
 		this.eCentWallet = new ECentWallet( ECENTWALLET_FILE );
-		if(eCentWallet.isEmpty()){ buyMoney(); }
-		this.eCentWallet.displayBalance();
+		
+		// Fill the wallet
+		if(eCentWallet.isEmpty())
+			buyMoney();
+		
+		eCentWallet.displayBalance();
 		
 		// set up message in the form FLAG;MSG (ie REQ;AMOUNT)
 		outMessage = MessageFlag.C_INIT + ":DATA\n";
