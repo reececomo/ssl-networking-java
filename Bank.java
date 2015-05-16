@@ -16,7 +16,7 @@ import lib.*;
 
 public class Bank extends DemoMode {
     
-	private static final int bankPort = 9999;
+	private static int bankPort = 9999;
 	 
 	private static int sequence = 0;			
 	private static int validationKey; 
@@ -34,6 +34,10 @@ public class Bank extends DemoMode {
 	 */
 
 	public static void main(String[] args) throws IOException {
+		// Option to give the port as an argument
+		if (args.length == 1)
+			bankPort = Integer.parseInt(args[0]) | bankPort;
+		
 		new Bank();
 	}
 	
@@ -56,7 +60,7 @@ public class Bank extends DemoMode {
 
 		} catch (IOException e) { System.out.println("Could not create server on port " + bankPort); }
 
-		ANNOUNCE("Bank started on " + getIPAddress());
+		ANNOUNCE("Bank started on " + getIPAddress() + ":" + bankPort);
 		
 		while(true){
 			SSLSocket sslsocket = null;

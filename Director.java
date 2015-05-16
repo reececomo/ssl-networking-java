@@ -19,7 +19,7 @@ import lib.*;
  */
 public class Director extends DemoMode {
 	
-	private static final int PORT = 9998;
+	private static int PORT = 9998;
 	private SSLServerSocket director;
 	
 	private static final int DATA_TYPE = 0;
@@ -35,7 +35,11 @@ public class Director extends DemoMode {
 	
 	// main
 	public static void main(String[] args) {
-		Director myDir = new Director( PORT );
+		// Option to give the port as an argument
+		if (args.length == 1)
+			PORT = Integer.parseInt(args[0]) | PORT;
+		
+		new Director( PORT );
 	}
 	
 	//constructor
@@ -71,7 +75,7 @@ public class Director extends DemoMode {
 			sf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
 			director = (SSLServerSocket) sf.createServerSocket( portNo );
 			
-			ANNOUNCE("Director started on " + getIPAddress());
+			ANNOUNCE("Director started on " + getIPAddress() + ":" + portNo);
 			
 			return true;
 			

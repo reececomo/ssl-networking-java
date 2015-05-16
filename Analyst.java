@@ -17,16 +17,16 @@ import lib.*;
 
 public class Analyst extends DemoMode {
 	
-	private final static int dirPort = 9998;
-	private final static int bankPort = 9999;
+	private static int dirPort = 9998;
+	private static int bankPort = 9999;
+	private static String directorIPAddress = "localhost";
+	private static String bankIPAddress = "localhost";
+	
 	private final static String INVALID_DATA_MSG_RESPONSE = "INVALID\n";
 	
 	// for accessing parts of a message in an array
 	private final static int DATA = 0;
 	private final static int ECENT = 1;
-	
-	private static String directorIPAddress = "localhost";
-	private static String bankIPAddress = "localhost";
 
 	private SSLServerSocket sslserversocket = null;
 	private int localPort;
@@ -36,11 +36,18 @@ public class Analyst extends DemoMode {
 	private String inMsg;
 
 	public static void main(String[] args) throws IOException {
-		
 		// If IP Addresses given
 		if( args.length == 2 ) {
-			directorIPAddress = args[0];
-			bankIPAddress = args[1];
+			String[] bankFullAddress = args[0].split(":");
+			String[] dirFullAddress = args[1].split(":");
+			
+			// Grab the first part
+			bankIPAddress = bankFullAddress[0];
+			directorIPAddress = dirFullAddress[0];
+			
+			// Test if ports ALSO given
+			bankPort = Integer.parseInt(bankFullAddress[1]) | bankPort;
+			dirPort = Integer.parseInt(dirFullAddress[1]) | dirPort;
 		}
 
 		// Run analyst
