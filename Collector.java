@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.Random;
 import javax.net.*;
 import javax.net.ssl.*;
-
+import java.util.Arrays;
 import lib.*;
 
 /**
@@ -55,7 +55,7 @@ public class Collector extends DemoMode {
 		}
 		
 		// Start collector
-		Collector collector = new Collector();
+		new Collector();
 	}
 	
 	public Collector() throws IOException {
@@ -164,7 +164,7 @@ public class Collector extends DemoMode {
 			directorReader = new BufferedReader(dirinputstreamreader);
             directorWriter = new OutputStreamWriter(diroutputstream); 
 			// send data message = [ FLAG  :  DATA TYPE  ;  DATA  ;  ECENT  ]
-			outMessage = MessageFlag.EXAM_REQ + ":" + "DATA" + ";blahblahblah;" + temporary_eCent + "\n";
+			outMessage = MessageFlag.EXAM_REQ + ":" + "DATA" + ";" + collect() + ";" + temporary_eCent + "\n";
 
 			directorWriter.write(outMessage); // send request to director (FLAG:TYPE;DATA;ECENT)
 			directorWriter.flush();
@@ -187,12 +187,13 @@ public class Collector extends DemoMode {
 
 	}
 
-	private int[] collect(){
+	private String collect(){
 		int[] array= new int[10];
 		Random rand = new Random();
 		for (int i=0; i<10; i++){
 			array[i]=rand.nextInt();
 		}
-		return array;
+		System.out.println(Arrays.toString(array));	
+		return Arrays.toString(array);
 	}
 }
