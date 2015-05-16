@@ -48,8 +48,10 @@ public class Collector extends DemoMode {
 			directorIPAddress = dirFullAddress[0];
 			
 			// Test if ports ALSO given
-			bankPort = Integer.parseInt(bankFullAddress[1]) | bankPort;
-			dirPort = Integer.parseInt(dirFullAddress[1]) | dirPort;
+			if (bankFullAddress.length == 2)
+				bankPort = Integer.parseInt(bankFullAddress[1]);
+			if (dirFullAddress.length == 2)
+				dirPort = Integer.parseInt(dirFullAddress[1]);
 		}
 		
 		// Start collector

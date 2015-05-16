@@ -36,7 +36,9 @@ public class Bank extends DemoMode {
 	public static void main(String[] args) throws IOException {
 		// Option to give the port as an argument
 		if (args.length == 1)
-			bankPort = Integer.parseInt(args[0]) | bankPort;
+			try{ bankPort = Integer.valueOf(args[0]); }
+			catch (NumberFormatException er) { bankPort = 9999; }
+		
 		
 		new Bank();
 	}
@@ -53,25 +55,34 @@ public class Bank extends DemoMode {
 		
 		ANNOUNCE("Starting bank server");
 
+		if(this.startServer()) {
+
+			ANNOUNCE("Bank started on " + getIPAddress() + ":" + bankPort);
+			
+			while(true){
+				SSLSocket sslsocket = null;
+				try {
+					sslsocket = (SSLSocket)sslserversocket.accept();
+					
+					ALERT("Receiving new request!");
+
+				}catch (IOException e){ System.out.println("Error connecting client"); }
+
+				new Thread( new bankConnection(sslsocket) ).start();	// start new thread
+			}
+		}
+	}
+	
+	private boolean startServer() {
 		try {
 			// Use the SSLSSFactory to create a SSLServerSocket to create a SSLSocket
 			SSLServerSocketFactory sslserversocketfactory = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-			sslserversocket = (SSLServerSocket)sslserversocketfactory.createServerSocket(9999);
-
-		} catch (IOException e) { System.out.println("Could not create server on port " + bankPort); }
-
-		ANNOUNCE("Bank started on " + getIPAddress() + ":" + bankPort);
-		
-		while(true){
-			SSLSocket sslsocket = null;
-			try {
-				sslsocket = (SSLSocket)sslserversocket.accept();
-				ALERT("Receiving new request!");
-
-			}catch (IOException e){ System.out.println("Error connecting client"); }
-
-			new Thread( new bankConnection(sslsocket) ).start();	// start new thread
+			sslserversocket = (SSLServerSocket)sslserversocketfactory.createServerSocket(bankPort);
+			return true;
+		} catch (IOException e) {
+			ALERT("Could not create server on port " + bankPort);
 		}
+		return false;
 	}
 
 	private class bankConnection implements Runnable {

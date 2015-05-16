@@ -35,11 +35,14 @@ public class Director extends DemoMode {
 	
 	// main
 	public static void main(String[] args) {
+		int newPort = PORT;
+		
 		// Option to give the port as an argument
 		if (args.length == 1)
-			PORT = Integer.parseInt(args[0]) | PORT;
+			try{ newPort = Integer.valueOf(args[0],10); }
+			catch (NumberFormatException er) { newPort = PORT; }
 		
-		new Director( PORT );
+		new Director( newPort );
 	}
 	
 	//constructor
