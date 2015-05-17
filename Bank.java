@@ -45,19 +45,14 @@ public class Bank extends Node {
 
 		bankStore = new ECentWallet(ECENTWALLET_FILE);
 
-		// Generates validation key for hashing
-
 		ANNOUNCE("Starting bank server");
 
 		if (this.startServer()) {
-
 			ANNOUNCE("Bank started on " + getIPAddress() + ":" + bankPort);
-
 			while (true) {
 				SSLSocket sslsocket = null;
 				try {
 					sslsocket = (SSLSocket) sslserversocket.accept();
-
 					ALERT("Accepting a connection!");
 
 				} catch (IOException e) {
@@ -102,11 +97,9 @@ public class Bank extends Node {
 					
 					case MessageFlag.BANK_WIT:
 						ALERT("Collector connected  -->  Withdrawing money");
-	
 						int amount = Integer.parseInt(msg.data);
-	
 						ALERT("Generating " + amount + " eCents!");
-	
+						
 						for (int i = 0; i < amount; i++)
 							client.send(generateEcent());
 	
@@ -140,8 +133,11 @@ public class Bank extends Node {
 	}
 
 	private static String generateEcent() {
+		String eCent = getSHA256Hash(Integer.toString(sequence++));
 
-		return getSHA256Hash(Integer.toString(sequence++));
+		bankStore.add(eCent); // add ecent to valid set
+		
+		return eCent;
 	}
 
 	private static String getSHA256Hash(String passwordToHash) {
@@ -161,7 +157,6 @@ public class Bank extends Node {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		}
-		bankStore.add(generatedPassword); // add ecent to valid set
 		return generatedPassword; // return ecent
 	}
 

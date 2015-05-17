@@ -23,8 +23,6 @@ public class Analyst extends Node {
 		
 		SSLHandler.declareDualCert("SSL_Certificate","cits3002");
 		
-		ANNOUNCE("Connecting to Director");
-		
 		// Connect to bank and director through abstract class
 		bank = new ServerConnection(bankIPAddress, bankPort);
 		director = new ServerConnection(directorIPAddress, dirPort);

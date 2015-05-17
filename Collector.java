@@ -19,8 +19,6 @@ public class Collector extends Node {
 	private static String bankIPAddress = "localhost";
 
 	private final static String ECENTWALLET_FILE = "collector.wallet";
-
-	private String inMessage;
 	
 	private ServerConnection bank, director;
 
@@ -48,7 +46,7 @@ public class Collector extends Node {
 		// Initiate eCentWallet
 		this.eCentWallet = new ECentWallet( ECENTWALLET_FILE );
 		if (eCentWallet.isEmpty())
-			buyMoney();
+			buyMoney(100);
 		ANNOUNCE(eCentWallet.displayBalance());
 
 		if(bank.connected && initiateWithDirector())
@@ -56,21 +54,18 @@ public class Collector extends Node {
 	}
 
 
-	private void buyMoney(){
+	private void buyMoney(int amount){
+		
 		ALERT("Sending Money Withdrawl Request..");
-
-		// Withdraw 100 request
-		String withdrawl_request = MessageFlag.BANK_WIT + ":100";
+		String withdrawl_request = MessageFlag.BANK_WIT + ":" + amount;
 		bank.send(withdrawl_request);
 		
-		String[] eCentBuffer = new String[100];
-
+		String eCent;
+		String[] eCentBuffer = new String[amount];
 		int index = 0;
-		while((inMessage = bank.receive()) != null){
-		//	System.out.println(index + " = " + inMessage);	
-			eCentBuffer[index] = inMessage;
-			index++;
-		}
+		
+		while(index < amount && (eCent = bank.receive()) != null)
+			eCentBuffer[index++] = eCent;
 
 		eCentWallet.add(eCentBuffer);
 	}
