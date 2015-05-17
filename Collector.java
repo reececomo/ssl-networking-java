@@ -37,13 +37,45 @@ public class Collector extends Node {
 		director = new ServerConnection(directorIPAddress, dirPort);
 		
 		// Initiate eCentWallet
-		this.eCentWallet = new ECentWallet( ECENTWALLET_FILE );
-		if (eCentWallet.isEmpty())
-			buyMoney(100);
+		eCentWallet = new ECentWallet( ECENTWALLET_FILE );
+		
 		ANNOUNCE(eCentWallet.displayBalance());
 
 		if(bank.connected && initiateWithDirector())
-			this.run();
+			this.runCollector();
+	}
+	
+	private void runCollector() {
+		int[] dest = {12,12};
+		String coordinates = stringCoords(xpos,ypos,dest[x],dest[y]); // "0,0:12:12"
+		
+		try {
+			while(true) {
+				// analyse_data(node,coordinates) = String e.g. "01001203132321"
+				char[] movements = analyse_data("NAV", coordinates).toCharArray(); // e.g. [0,1,0,0,1,2,0,3,1,3,2,3,2,1]
+				
+				for(char move : movements) {
+					// Do something
+					// simulate movement?
+					
+					// if hit object on next movement run something
+					// like --> analyse_data("ORC","Unicorn:SMALL");
+					switch(move) {
+						case LEFT: this.xpos--; break;
+						case RIGHT:this.xpos++; break;
+						case DOWN: this.ypos--; break;
+						case UP: this.ypos++; break;
+					}
+					
+				}
+			}
+		} catch(IOException er) {
+			
+		}
+	}
+
+	private String sensor(){
+		return "All-Clear";
 	}
 
 
@@ -95,6 +127,10 @@ public class Collector extends Node {
 	private String analyse_data(String dataType, String data) throws IOException {
 		
 		ALERT("Connected! (Director)");
+		
+		if (eCentWallet.isEmpty())
+			buyMoney(100);
+		
 		String temporary_eCent = eCentWallet.remove();
 
 		try {
@@ -140,52 +176,5 @@ public class Collector extends Node {
 		}
 		
 		return null;
-	}
-
-	private String sensor(){
-		return "All-Clear";
-	}
-	
-	private void run() {
-		String moves = "01001203132321";
-		char[] movements = moves.toCharArray();
-		
-		try {
-			moves = analyse_data("NAV",coordinates_to_string(0,0,12,12));
-			
-			for(char move : movements) {
-				// Do something
-				// simulate movement?
-				
-				// if hit object on next movement run something
-				// like --> analyse_data("ORC","Unicorn:SMALL");
-				switch(move) {
-					case LEFT:
-						this.xpos--;
-						break;
-						
-					case RIGHT:
-						this.xpos++;
-						break;
-						
-					case UP:
-						this.ypos++;
-						break;
-						
-					case DOWN:
-						this.ypos--;
-						break;
-						
-					default:
-						ALERT("INVALID");
-						break;
-				
-				}
-				
-			}
-		} catch(IOException er) {
-			
-		}
-		
 	}
 }

@@ -71,7 +71,7 @@ public class Node extends Security {
 		}
 	}
 	
-	public static String coordinates_to_string(int x1, int y1, int x2, int y2) {
+	public static String stringCoords(int x1, int y1, int x2, int y2) {
 		return ""+x1+","+y1+":"+x2+","+y2;
 	}
 	
