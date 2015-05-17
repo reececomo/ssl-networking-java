@@ -1,6 +1,5 @@
 import java.io.*;
 import java.util.Random;
-import javax.net.*;
 import javax.net.ssl.*;
 import java.util.Arrays;
 import lib.*;
@@ -11,7 +10,7 @@ import lib.*;
  * @version 5.9.15
  */
 
-public class Collector extends DemoMode {
+public class Collector extends Node {
 
 	private static int dirPort = 9998;
 	private static int bankPort = 9999;

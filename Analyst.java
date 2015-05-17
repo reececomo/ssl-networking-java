@@ -78,7 +78,7 @@ public class Analyst extends Node {
 			InConnection director_in = new InConnection(localhost.socket());
 			String request = director_in.receive();
 			
-			if ((message = decryptMessage(request)) == null) {
+			if ((message = decrypt(request)) == null) {
 				System.err.println("Could not decrypt message!");
 				director_in.close();
 				
@@ -100,7 +100,7 @@ public class Analyst extends Node {
 		}
 	}
 	
-	private String[] decryptMessage(String encryptedMsg) {
+	private String[] decrypt(String encryptedMsg) {
 		
 		// Perform decryption here
 		

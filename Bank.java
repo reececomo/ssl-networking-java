@@ -3,7 +3,6 @@ import java.io.*;
 import javax.net.ssl.*;
 
 import java.security.*;
-import java.util.*;
 
 import lib.*;
 
@@ -14,15 +13,12 @@ import lib.*;
  * @version 5.9.15
  */
 
-public class Bank extends DemoMode {
+public class Bank extends Node {
     
 	private static int bankPort = 9999;
 	 
 	private static int sequence = 0;			
-	private static int validationKey; 
-	
-	private static final String BANK_REQ = "REQ";		// withdrawl flag
-	private static final String BANK_DEP = "DEP";		// deposit flag
+	private static int validationKey;
 
 	private static SSLServerSocket sslserversocket = null;
 

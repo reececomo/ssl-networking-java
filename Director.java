@@ -1,7 +1,4 @@
 import java.io.*;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.*;
@@ -17,7 +14,7 @@ import lib.*;
  * @version 5.9.15
  *
  */
-public class Director extends DemoMode {
+public class Director extends Node {
 	
 	private static int PORT = 9998;
 	private SSLServerSocket director;
