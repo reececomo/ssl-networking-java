@@ -13,28 +13,20 @@ import lib.*;
 
 public class Collector extends Node {
 
-	private static int dirPort = 9998;
-	private static int bankPort = 9999;
-	private static String directorIPAddress = "localhost";
-	private static String bankIPAddress = "localhost";
-
+	private ECentWallet eCentWallet; // file for holding ecents
 	private final static String ECENTWALLET_FILE = "collector.wallet";
 	
 	private ServerConnection bank, director;
 
-	private ECentWallet eCentWallet; // file for holding ecents
 	
-	
-	/**
-	 * Collector
-	 */
 	public static void main(String[] args) throws IOException {
 		load_ip_addresses(args);
 		new Collector();
 	}
-	
-	// Collector
-	
+
+	/**
+	 * Collector
+	 */
 	public Collector() throws IOException {
 		set_type("COLLECTOR");
 		SSLHandler.declareClientCert("SSL_Certificate","cits3002");
@@ -69,10 +61,11 @@ public class Collector extends Node {
 
 		eCentWallet.add(eCentBuffer);
 	}
-	
-	// Returns TRUE iff director can handle data analysis (has analyst(s) available)
-	private boolean initiateWithDirector() {
+
+	private boolean initiateWithDirector()
+	{
 		String connect_director = MessageFlag.C_INIT + ":DATA";
+		
         return director.request(connect_director) != null;
 	}
 

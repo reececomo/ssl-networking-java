@@ -13,8 +13,13 @@ public class Analyst extends Node {
 	private String analyst_type;
 
 	public static void main(String[] args) {
-		load_ip_addresses(args);
-		new Analyst("DATA");
+		String type = "DATA";
+		int any_special_params = load_ip_addresses(args);
+		
+		if(args.length-any_special_params > 1)
+			type = args[0];
+		
+		new Analyst(type);
 	}
 
 	public Analyst(String analyst_type) {

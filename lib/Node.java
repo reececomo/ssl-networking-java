@@ -44,23 +44,38 @@ public class Node {
 		}
 	}
 	
-	public static void load_ip_addresses(String[] args) {
+	public static int load_ip_addresses(String[] args) {
+		
+		int params_given = 0;
 
 		// If IP Addresses given
-		if( args.length == 2 ) {
-			String[] bankFullAddress = args[0].split(":");
-			String[] dirFullAddress = args[1].split(":");
+		for(String argument : args) {
+			String[] arg = argument.split("=");
 			
-			// Grab the first part
-			bankIPAddress = bankFullAddress[0];
-			directorIPAddress = dirFullAddress[0];
-			
-			// Test if ports ALSO given
-			if (bankFullAddress.length == 2)
-				bankPort = Integer.parseInt(bankFullAddress[1]);
-			if (dirFullAddress.length == 2)
-				dirPort = Integer.parseInt(dirFullAddress[1]);
+			if( arg.length == 2 ) {
+				if(arg[0].equals("-bank"))
+				{
+					String[] bankFullAddress = arg[1].split(":");
+					bankIPAddress = bankFullAddress[0];
+					if (bankFullAddress.length == 2)
+						bankPort = Integer.parseInt(bankFullAddress[1]);
+					
+					params_given++;
+				}
+				
+				if (arg[0].equals("-dir"))
+				{
+					String[] dirFullAddress = arg[1].split(":");
+					directorIPAddress = dirFullAddress[0];
+					if (dirFullAddress.length == 2)
+						dirPort = Integer.parseInt(dirFullAddress[1]);
+					
+					params_given++;
+				}
+			}
 		}
+		
+		return params_given;
 	}
 
 	// Announce makes a huge block
