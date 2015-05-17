@@ -3,16 +3,18 @@
 
 ####Running Program
 - **Compile** - <code>javac *.java</code>
-- **Execute DIR** - <code>java Director [PORT optional]</code>
-- **Execute COL** - <code>java Collector *-dir=localhost* *-bank=192.168.1.1:3000*</code>
+- **Execute Server (Bank/Dir)** - <code>java Director (*3000*)</code>
+- **Execute Client (Anal/Col)** - <code>java Collector (*-dir=localhost:9000* *-bank=192.168.1.1*)</code>
+
+*By default Analysts and Collectors will try to connect to a Director and Bank on <code>localhost:9998</code> and <code>localhost:9999</code>*
 
 ##0 - TODO List
 #####0.1 High
 - ***Retry instead of closing*** - Handle exceptions nicely, *pause/retry/hang connection* instead of crashing.
 
 #####0.2 Medium
-- ***Collector***: *Write some data for the collectors to collect*
-- ***Analyst***: *Design the analysis types; return data*
+- ***Collector***: *Write the robot AI*
+- ***Analyst***: *Write the Navigator Analyst and Obstruction Response Coordinator analysis types*
 - ***Add user input if required*** - add console/user commands IF necessary on some applications.
 
 #####0.3 Low
