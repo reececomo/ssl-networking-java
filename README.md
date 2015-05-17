@@ -3,22 +3,19 @@
 
 ####Running Program
 - **Compile** - <code>javac *.java</code>
-- **Execute DIR** - <code>java Director</code>
-- **Execute COL** - <code>java Collector *ip_address1* *ip_address2*</code>
+- **Execute DIR** - <code>java Director [PORT optional]</code>
+- **Execute COL** - <code>java Collector *-dir=localhost* *-bank=192.168.1.1:3000*</code>
 
 ##0 - TODO List
 #####0.1 High
-- ***Collector***: *Write some data for the collectors to collect*
-- ***Analyst***: *Design the analysis types; return data*
-- ***Retry instead of crashing*** - Handle exceptions nicely, *pause/retry/hang connection* instead of crashing.
+- ***Retry instead of closing*** - Handle exceptions nicely, *pause/retry/hang connection* instead of crashing.
 
 #####0.2 Medium
+- ***Collector***: *Write some data for the collectors to collect*
+- ***Analyst***: *Design the analysis types; return data*
 - ***Add user input if required*** - add console/user commands IF necessary on some applications.
-  - *alt*. ***Slow down process*** - perhaps with *sleep(1000)* for the demo
-- ***Make the code readable from a distance*** - Lots of random code, and lines that are poorly worded, unused, over-commented, etc.
 
 #####0.3 Low
-- ***Create a pretty SSL cert*** - Potentially give different servers different server/client SSL certificates.
 - ***Split code into subclasses*** - *WHERE NECESSARY* - For readability, encapsulation, modularity, etc.
 
 ##1 - Core Components
