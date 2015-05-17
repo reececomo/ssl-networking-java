@@ -1,10 +1,12 @@
 package lib;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.UnknownHostException;
 
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
@@ -20,24 +22,43 @@ public class ServerConnection {
 	private OutputStreamWriter writer;
 	private BufferedReader reader;
 	private SSLSocket sslSocket;
+	public boolean busy = false;
+	public boolean connected = false;
+	
+	public ServerConnection(SSLSocket socket) {
+		sslSocket = socket;
+		this.connected = startServer();
+	}
 	
 	public ServerConnection(String ip, int port) {
 		try {
-		// SSL Socket
-		SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-		sslSocket = (SSLSocket)sslsf.createSocket(ip, port); 
-
-		// Create input buffer
-		InputStream inputstream = sslSocket.getInputStream();
-		InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-		reader = new BufferedReader(inputstreamreader);
-
-		// Create output stream
-		OutputStream outputStream = sslSocket.getOutputStream();
-		writer = new OutputStreamWriter(outputStream); 	
-		
+			// SSL Socket
+			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+			sslSocket = (SSLSocket)sslsf.createSocket(ip, port);
+			this.connected = startServer();
+			
+		} catch (UnknownHostException e) {
+			System.err.println("No host found at "+ip+":"+port+".");
+			
+		} catch (IOException e) {
+			System.err.println("No listening host at "+ip+":"+port+".");
+		} 
+	}
+	
+	public boolean startServer() {
+		try {
+			// Create input buffer
+			InputStream inputstream = sslSocket.getInputStream();
+			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
+			reader = new BufferedReader(inputstreamreader);
+	
+			// Create output stream
+			OutputStream outputStream = sslSocket.getOutputStream();
+			writer = new OutputStreamWriter(outputStream); 
+			
+			return true;
 		} catch (Exception err) {
-			err.printStackTrace();
+			return false;
 		}
 	}
 	
@@ -47,7 +68,7 @@ public class ServerConnection {
 			writer.flush();
 			return true;
 		} catch (Exception err) {
-			err.printStackTrace();
+			this.connected = false;
 			return false;
 		}
 	}
@@ -58,7 +79,8 @@ public class ServerConnection {
 			return msg;
 			
 		} catch (Exception err) {
-			err.printStackTrace();
+			this.connected = false;
+			//err.printStackTrace();
 		}
 		return null;
 	}
@@ -70,9 +92,10 @@ public class ServerConnection {
 	
 	public void close() {
 		try{
-		this.sslSocket.close();
+			this.connected = false;
+			this.sslSocket.close();
 		}catch(Exception err) {
-			err.printStackTrace();
+			//err.printStackTrace();
 		}
 	}
 }

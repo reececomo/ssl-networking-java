@@ -10,215 +10,200 @@ import lib.*;
 /**
  * Director Node class
  * 
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexaner Popoff-Asotoff
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexaner
+ *         Popoff-Asotoff
  * @version 5.9.15
  *
  */
 public class Director extends Node {
-	
+
 	private static int PORT = 9998;
 	private SSLServerSocket director;
-	
+
 	private static final int DATA_TYPE = 0;
-	private static final int ADDR = 1;
 	private static final int DATA = 1;
-	private static final int ADDR_PORT = 2;
 	private static final int ECENT = 2;
 
-	private HashMap<String, HashSet<String>> analystPool;	// explained in constuctor
-	private HashSet<String> busyAnalyst;			// as above
-	
+	private HashMap<String, HashSet<ServerConnection>> analystPool; // explained
+																	// in
+																	// constuctor
+	private HashSet<ServerConnection> busyAnalyst; // as above
+
 	private boolean socketIsListening = true;
-	
+
 	// main
 	public static void main(String[] args) {
 		int newPort = PORT;
-		
+
 		// Option to give the port as an argument
 		if (args.length == 1)
-			try{ newPort = Integer.valueOf(args[0],10); }
-			catch (NumberFormatException er) { newPort = PORT; }
-		
-		new Director( newPort );
+			try {
+				newPort = Integer.valueOf(args[0], 10);
+			} catch (NumberFormatException er) {
+				newPort = PORT;
+			}
+
+		new Director(newPort);
 	}
-	
-	//constructor
-	public Director ( int portNo ) {
+
+	// constructor
+	public Director(int portNo) {
 		set_type("DIRECTOR");
-		
-		analystPool = new HashMap<String, HashSet<String>>();		// hashmap of data types, storing all [address:socket] of analyst's assoc. with data type
-		busyAnalyst = new HashSet<String>();				// busy analysts address pool (all analysts in here are currently busy)
+
+		analystPool = new HashMap<String, HashSet<ServerConnection>>(); // hashmap
+		busyAnalyst = new HashSet<ServerConnection>(); // busy analysts address
+														// pool (all analysts in
+														// here are currently
+														// busy)
 
 		// SSL Certificate
-		SSLHandler.declareDualCert("SSL_Certificate","cits3002");
+		SSLHandler.declareDualCert("SSL_Certificate", "cits3002");
 		ExecutorService executorService = Executors.newFixedThreadPool(100);
 
 		ANNOUNCE("Starting director server");
-		
+
 		// Start Server and listen
-		if( this.startSocket(portNo) ) {
-			
-			while(this.socketIsListening){
-				try {	
+		if (this.startSocket(portNo)) {
+
+			while (this.socketIsListening) {
+				try {
 					SSLSocket clientSocket = (SSLSocket) director.accept();
-					executorService.execute(new DirectorClient ( clientSocket ));
-			
-				} catch (IOException err) { System.err.println("Error connecting client " + err); }
+					executorService.execute(new DirectorClient(clientSocket));
+
+				} catch (IOException err) {
+					System.err.println("Error connecting client " + err);
+				}
 			}
 		}
 	}
-	
-	public boolean startSocket( int portNo ) {
+
+	public boolean startSocket(int portNo) {
 		try {
 			SSLServerSocketFactory sf;
-			
+
 			sf = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
-			director = (SSLServerSocket) sf.createServerSocket( portNo );
-			
+			director = (SSLServerSocket) sf.createServerSocket(portNo);
+
 			ANNOUNCE("Director started on " + getIPAddress() + ":" + portNo);
-			
+
 			return true;
-			
+
 		} catch (Exception error) {
-			System.err.println("Director failed to start: " + error );
+			System.err.println("Director failed to start: " + error);
 			System.exit(-1);
-			
+
 			return false;
 		}
 	}
 
 	public class DirectorClient implements Runnable {
 
-		private String inmessage, outmessage;
+		protected ServerConnection client;
 
-		protected SSLSocket sslsocket = null;
-
-		public DirectorClient(SSLSocket socket){
-			this.sslsocket = socket;
+		public DirectorClient(SSLSocket socket) {
+			client = new ServerConnection(socket);
 		}
 
 		public void run() {
-			try {
-				// IO Stream
-				InputStream inputstream = sslsocket.getInputStream();
-				InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
-				OutputStream outputstream = sslsocket.getOutputStream();
-            	OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream);
-		
-            	// Read a line
-				String message_raw = bufferedreader.readLine();
+			String msg_raw;
+			while (client.connected && !client.busy) {
 				
-				Message msg = new Message(message_raw);
-				String msg_flag = msg.getFlag();
-				String[] msg_data = msg.getData();
-
-				if(msg_flag.equals(MessageFlag.C_INIT)){		// Collector init
-					ALERT("Collector connected...");
-
-					if(analystPool.containsKey(msg.data)){
-						outputstreamwriter.write("TRUE\n");
-					}else{
-						outputstreamwriter.write("FALSE\n");
-					}
-					outputstreamwriter.flush();
-
-				}else if(msg_flag.equals(MessageFlag.A_INIT)){	// Analysis init
-					ALERT("Analyst connected...");
+				if ((msg_raw = client.receive()) != null) {
+					Message msg = new Message(msg_raw);
+					String[] msg_data = msg.getData();
 					
-					if( !analystPool.containsKey(msg_data[DATA_TYPE]) ){
-						HashSet<String> set = new HashSet<String>();
-						set.add(msg_data[ADDR] + ":" + msg_data[ADDR_PORT]);		// add Host:Port of analyst to hashset
-						analystPool.put(msg_data[DATA_TYPE], set);	// add analyst to datatype pool and socket set
-					}else{
-						analystPool.get(msg_data[DATA_TYPE]).add(msg_data[ADDR] + ":" + msg_data[ADDR_PORT]);
-					}
-				
-					ALERT("Analyst initialized (" + msg_data[DATA_TYPE] + ")");
+					switch (msg.getFlag()) {
+					case MessageFlag.C_INIT:
+						// Collector connecting
+						ALERT("Collector connected...");
+						String data_type_available = "" + analystPool.containsKey(msg.data);
+						client.send(data_type_available);
 
-				}else if(msg_flag.equals(MessageFlag.EXAM_REQ)){		// Analysis request (examination)
+						break;
 
-					HashSet<String> disconnectedAnalyst = new HashSet<String>();
+					case MessageFlag.A_INIT:
+						// Analysis connecting
+						if (!analystPool.containsKey(msg_data[DATA_TYPE])) {
+							HashSet<ServerConnection> set = new HashSet<ServerConnection>();
+							set.add(client); // add Host:Port of analyst to
+												// hashset
+							analystPool.put(msg_data[DATA_TYPE], set); // add
+						} else {
+							HashSet<ServerConnection> analystpool_data_type = analystPool
+									.get(msg_data[DATA_TYPE]);
+							analystpool_data_type.add(client);
+						}
 
-					ALERT("Data Analysis request recieved");
+						ALERT("Analyst connected... (" + msg_data[DATA_TYPE] + ")");
 
-					boolean success = false;
-					
-					HashSet<String> getAnalysts = analystPool.get(msg_data[DATA_TYPE]);	// get analyst that match data type
+						client.send("REGISTERED");
+						client.busy = true;
 
-					for(String address : getAnalysts){			// for each analyst in data type
-						if(!busyAnalyst.contains(address)){		// if their address isn't currently busy
-							
-							// Forward DATA + eCent (without data type)
-							outmessage = msg_data[DATA] + ";" + msg_data[ECENT] + "\n";
-							
-							if(sendDataToAnalyst(outmessage, address)){
-								if(outmessage != null){
-									outputstreamwriter.write(outmessage);
-									outputstreamwriter.flush();
-									ALERT("Result returned to collector");
-									success = true;
+						break;
+
+					case MessageFlag.EXAM_REQ:
+						ALERT("Collector sending request...");
+						ALERT("Data Analysis request recieved");
+						boolean success = false;
+
+						// getAnalysts of the right data type
+						HashSet<ServerConnection> getAnalysts = analystPool.get(msg_data[DATA_TYPE]);
+						
+						if (getAnalysts == null)
+							getAnalysts = new HashSet<ServerConnection>();
+
+						for (ServerConnection analyst : getAnalysts) {
+							if (!busyAnalyst.contains(analyst)) {
+								ALERT("Analyst found! Analysing...");
+								
+								// Forward DATA + eCent (without data type)
+								String request = msg_data[DATA] + ";" + msg_data[ECENT];
+								
+								busyAnalyst.add(analyst);
+
+								if (analyst.send(request)) {
+									String result;
+									if ((result = analyst.receive()) != null) {
+
+										ALERT("Analysis recieved: " + result);
+										ALERT("Forwarding to Collector.");
+
+										if (client.send(result)) {
+											ALERT("Result returned to Collector");
+											success = true;
+										}
+										else
+											ALERT("Unable to return result to Collector!");
+									}
+									busyAnalyst.remove(analyst);
 									break;
-								}else 
+								} else {
 									ALERT("Analyst crashed after recieving ecent.. trying next one");
-							}else{
-								disconnectedAnalyst.add(address);	// add analyst to DCed set if connection fails
+									getAnalysts.remove(analyst); // disconnect analyst
+								}
 							}
 						}
+
+						if (success) {
+							ALERT("Finished analysis!");
+						}else {
+							client.send("FAILURE:No analysts currently available!");
+							ALERT("ERROR: No analysts currently available");
+						} 
+
+						break;
+
+					default:
+						ALERT("Unrecognised message.");
+						break;
+
 					}
-
-					if(!success)
-						ALERT("ERROR: Analysis could not be completed...");
-
-					if(!disconnectedAnalyst.isEmpty())
-						for(String s : disconnectedAnalyst)
-							analystPool.get(msg_data[DATA_TYPE]).remove(s);		// remove DCed analyst from pool
-
+				} else {
+					ALERT("Closing connection");
+					client.close();
 				}
-
-				sslsocket.close();
-
-			} catch (IOException e){
-           	 	System.out.println("Error listening on port or listening for a connection");
-				System.out.println(e.getMessage());
-    		
-    		}
+			}
 		}
-	
-		private boolean sendDataToAnalyst(String message, String address){
-			
-			String host = address.split(":")[0];
-			int port = Integer.parseInt(address.split(":")[1]);
-
-			try{
-				SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-				SSLSocket sslsocket = (SSLSocket)sslsf.createSocket(host, port);
-
-				InputStream inputstream = sslsocket.getInputStream();
-				InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
-				BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
-
-				OutputStream outputstream = sslsocket.getOutputStream();
-       		     OutputStreamWriter outputstreamwriter = new OutputStreamWriter(outputstream); 
-
-				busyAnalyst.add(address);			// connected so add to busy analysts
-
-				ALERT("Sending Data to Analyst (" + address + ")");
-
-				outputstreamwriter.write(outmessage);		// send message to analyst
-				outputstreamwriter.flush();
-
-				outmessage = bufferedreader.readLine(); // get message to forward to collector
-
-				busyAnalyst.remove(address);	
-				return true;
-
-			}catch (IOException e) { ALERT("Disconnect: Could not connect to Analyst on " + address + ", trying next one..."); }
-
-			return false;
-		
-		}
-			
 	}
-	
+
 }

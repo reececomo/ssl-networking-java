@@ -1,8 +1,3 @@
-import java.io.*;
-
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLServerSocketFactory;
-
 import lib.*;
 
 /**
@@ -13,29 +8,20 @@ import lib.*;
 
 public class Analyst extends Node {
 	
-	// for accessing parts of a message in an array
-	private String outMsg;
-	private String inMsg;
-	
 	private ServerConnection bank, director;
-	private Server localhost;
+	
+	private String analyst_type;
 
 	public static void main(String[] args) {
 		load_ip_addresses(args);
-		new Analyst();
+		new Analyst("DATA");
 	}
 
-	public Analyst() {
-		set_type("ANALYST");
+	public Analyst(String analyst_type) {
+		set_type("ANALYST-"+analyst_type);
+		this.analyst_type = analyst_type;
+		
 		SSLHandler.declareDualCert("SSL_Certificate","cits3002");
-
-		// Create local server
-		try {
-			localhost = new Server();
-		} catch (IOException error) {
-			ANNOUNCE("Could not create Analyst");
-			System.exit(-1);
-		}
 		
 		ANNOUNCE("Connecting to Director");
 		
@@ -43,44 +29,49 @@ public class Analyst extends Node {
 		bank = new ServerConnection(bankIPAddress, bankPort);
 		director = new ServerConnection(directorIPAddress, dirPort);
 		
-		while(true) {
-			if(registerWithDirector())
+		while(bank.connected && director.connected) {
+			if(registerWithDirector()){
+				ANNOUNCE("Registered!");
 				this.run();
+			}
 			else
-				ALERT_WITH_DELAY("Retrying connection...");
+				ALERT_WITH_DELAY("Not connected to Director... retrying...");
 		}
 		
 	}
 
 	// Send data type to Director
 	private boolean registerWithDirector() {
-
 		ANNOUNCE("Registering availability with Director");
 		
-		String register_message = MessageFlag.A_INIT + ":" + "DATA" + ";" + getIPAddress() + ";" + Integer.toString(localhost.getPort()) + "\n";
-		return director.send(register_message);
-
+		String register_message = MessageFlag.A_INIT + ":" + this.analyst_type;
+		return director.request(register_message).equals("REGISTERED");
 	}
 	
 	private boolean depositMoney(String eCent) {
-		
 		ALERT("Sending eCent to the bank");
 		
 		String deposit_request = MessageFlag.BANK_DEP + ":" + eCent;
-		return bank.request(deposit_request).equals("VALID");
+		String result;
+		
+		if ((result = bank.request(deposit_request))!=null)
+			return result.equals("VALID");
+		else
+			return false;
 	}
 	
 	private void run() {
 		String[] message;
 		
 		while (true) {
+			ALERT("Idle...");
 			
-			InConnection director_in = new InConnection(localhost.socket());
-			String request = director_in.receive();
+			//InConnection director_in = new InConnection(localhost.socket());
+			String request = director.receive();
+			ALERT("Receiving request!");
 			
 			if ((message = decrypt(request)) == null) {
 				System.err.println("Could not decrypt message!");
-				director_in.close();
 				
 			} else { 
 				// Successful decryption
@@ -88,15 +79,15 @@ public class Analyst extends Node {
 				if ( depositMoney( message[ ECENT ] )) {
 					ALERT("Payment received!");
 					String analysis = analyse("PARTY", message[ DATA ] );
-					director_in.send( analysis );
-					director_in.close();
+					director.send( analysis );
+					ALERT("Analysis sent: "+analysis);
 				} else {
 					ALERT("Invalid payment!");
-					director_in.send("Invalid eCent!");
-					director_in.close();
+					director.send("Invalid eCent!");
 				}
 
 			}
+			
 		}
 	}
 	
@@ -109,14 +100,9 @@ public class Analyst extends Node {
 	
 	private String analyse(String analysisType, String rawdata) {
 		
-		// analyse data here
+		// Analyse data here
 		
-		if ( analysisType.equals("PARTY") )
-			// if allowing for multiple analysis types
-			return "WeLikeToParty!";
-		else
-			return "SomeGiberishDataResult!";
-			
+		return "SUCCESS";
 	}
 	
 	

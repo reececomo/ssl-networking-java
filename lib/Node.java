@@ -27,7 +27,7 @@ public class Node {
 	protected final static int ECENT = 1;
 
 	private final static int DEFAULT_PAUSE_LENGTH = 2500; // 2500 milliseconds
-	private final static int SHORT_PAUSE_LENGTH = 1500; // 1.5 second
+	private final static int SHORT_PAUSE_LENGTH = 200; // 1.5 second
 	private String STATE = "IDLE";
 	private String NODE_TYPE = null;
 	

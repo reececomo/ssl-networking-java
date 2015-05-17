@@ -20,8 +20,8 @@ public class Message {
 	      this.data = rawMessage.split(":")[1];
 	      
 	  } catch (Exception e) {
-		  
-		  System.err.println("Invalid message format: " + e);
+		  this.data = rawMessage;
+		  this.flag = Flag.NONE;
 	  }
   }
   
@@ -30,7 +30,15 @@ public class Message {
   }
  
   public String getFlag() {
-      return this.flag.toString();
+	  String flag;
+  
+	  try {
+		  flag = this.flag.toString();
+	  } catch (Exception err) {
+		  flag = "";
+	  }
+	  
+	  return flag;
   }
   
   public String raw() {
@@ -42,10 +50,9 @@ public class Message {
   public String[] getData() {
 	  try {
 		String[] array = this.data.split(";");
-		if(array.length == 3)
+		if(array.length > 0)
 			return array;
 	  } catch (NullPointerException err) {
-		  System.out.println("Not analyst data");
 	  }
 	  return null;
   }
