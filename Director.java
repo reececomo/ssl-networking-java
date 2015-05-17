@@ -21,8 +21,7 @@ public class Director extends Node {
 	private SSLServerSocket director;
 
 	private static final int DATA_TYPE = 0;
-	private static final int DATA = 1;
-	private static final int ECENT = 2;
+	private static final int PUBLIC_KEY = 1;
 
 	private HashMap<String, HashSet<ServerConnection>> analystPool; // explained
 																	// in
@@ -105,14 +104,18 @@ public class Director extends Node {
 		}
 
 		public void run() {
-			String msg_raw;
 			while (client.connected && !client.busy) {
 				
-				if ((msg_raw = client.receive()) != null) {
-					Message msg = new Message(msg_raw);
+				try {
+					Message msg = new Message(client.receive());
 					String[] msg_data = msg.getData();
 					
 					switch (msg.getFlag()) {
+
+					/*
+					 * C_INIT
+					 * Initiate collector
+					 */
 					case MessageFlag.C_INIT:
 						// Collector connecting
 						ALERT("Collector connected...");
@@ -121,65 +124,80 @@ public class Director extends Node {
 
 						break;
 
+					/*
+					 * A_INIT
+					 * Initiate analyst
+					 */
 					case MessageFlag.A_INIT:
-						// Analysis connecting
 						if (!analystPool.containsKey(msg_data[DATA_TYPE])) {
-							HashSet<ServerConnection> set = new HashSet<ServerConnection>();
-							set.add(client); // add Host:Port of analyst to
-												// hashset
-							analystPool.put(msg_data[DATA_TYPE], set); // add
+							
+							HashSet<ServerConnection> newpool = new HashSet<ServerConnection>();
+							newpool.add(client);
+							analystPool.put(msg_data[DATA_TYPE], newpool);
+							
 						} else {
-							HashSet<ServerConnection> analystpool_data_type = analystPool
-									.get(msg_data[DATA_TYPE]);
-							analystpool_data_type.add(client);
+							HashSet<ServerConnection> existingpool = analystPool.get(msg_data[DATA_TYPE]);
+							existingpool.add(client);
 						}
 
 						ALERT("Analyst connected... (" + msg_data[DATA_TYPE] + ")");
-
+						
+						client.public_key = msg_data[PUBLIC_KEY];
 						client.send("REGISTERED");
 						client.busy = true;
 
 						break;
 
+					/*
+					 * EXAM_REQ:
+					 * Data analysis request
+					 * 
+					 */
 					case MessageFlag.EXAM_REQ:
 						ALERT("Collector sending request...");
 						ALERT("Data Analysis request recieved");
 						boolean success = false;
 
-						// getAnalysts of the right data type
-						HashSet<ServerConnection> getAnalysts = analystPool.get(msg_data[DATA_TYPE]);
+						// Get list of analysts for this data type
+						HashSet<ServerConnection> datatype_analysts = analystPool.get(msg_data[DATA_TYPE]);
 						
-						if (getAnalysts == null)
-							getAnalysts = new HashSet<ServerConnection>();
-
-						for (ServerConnection analyst : getAnalysts) {
-							if (!busyAnalyst.contains(analyst)) {
-								ALERT("Analyst found! Analysing...");
+						// If there are some analysts
+						if (datatype_analysts != null) {
+							
+							// Try some analyst until you find one that's free and connected
+							for (ServerConnection analyst : datatype_analysts) {
 								
-								// Forward DATA + eCent (without data type)
-								String request = msg_data[DATA] + ";" + msg_data[ECENT];
-								
-								busyAnalyst.add(analyst);
+								if (!busyAnalyst.contains(analyst)) {
+									// Reserve the analyst
+									busyAnalyst.add(analyst);
+									
+									ALERT("Analyst found! Sending Collector the analyst public key...");
+									String eCent = client.request(MessageFlag.PUB_KEY + ":" + analyst.public_key);
+									String data = null,result = null;
+									
+									data = client.receive();
+									
+									if (analyst.connected) {
+										
+										// Send eCent and data, and request result
+										analyst.send(MessageFlag.EXAM_REQ + ":" + eCent);
+										result = analyst.request(data);
+										
+										ALERT("Analysis received! Forwarding to Collector.");
 
-								if (analyst.send(request)) {
-									String result;
-									if ((result = analyst.receive()) != null) {
-
-										ALERT("Analysis recieved: " + result);
-										ALERT("Forwarding to Collector.");
-
-										if (client.send(result)) {
-											ALERT("Result returned to Collector");
-											success = true;
-										}
-										else
-											ALERT("Unable to return result to Collector!");
+										client.send(result);
+										
+										ALERT("Result returned to Collector");
+										success = true;
+											
+										busyAnalyst.remove(analyst);
+										break;
+										
+									} else {
+										ALERT("Analyst crashed after recieving ecent.. trying next one");
+										datatype_analysts.remove(analyst); // disconnect analyst
+										busyAnalyst.remove(analyst);
 									}
-									busyAnalyst.remove(analyst);
-									break;
-								} else {
-									ALERT("Analyst crashed after recieving ecent.. trying next one");
-									getAnalysts.remove(analyst); // disconnect analyst
 								}
 							}
 						}
@@ -187,20 +205,21 @@ public class Director extends Node {
 						if (success) {
 							ALERT("Finished analysis!");
 						}else {
-							client.send("FAILURE:No analysts currently available!");
-							ALERT("ERROR: No analysts currently available");
+							client.send("Error: No analysts currently available!");
+							ALERT("Error: No analysts currently available!");
 						} 
 
 						break;
 
 					default:
-						ALERT("Unrecognised message.");
+						ALERT("Unrecognised message: " + msg.raw());
 						break;
 
 					}
-				} else {
+				} catch(IOException err) {
 					ALERT("Closing connection");
 					client.close();
+					break;
 				}
 			}
 		}

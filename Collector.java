@@ -1,6 +1,6 @@
 import java.io.*;
+import java.security.PublicKey;
 import java.util.Random;
-
 import java.util.Arrays;
 
 import lib.*;
@@ -42,7 +42,7 @@ public class Collector extends Node {
 		ANNOUNCE(eCentWallet.displayBalance());
 
 		if(bank.connected && initiateWithDirector())
-			sendDirectorData();
+			sendDirectorData("DATA",collect());
 	}
 
 
@@ -50,14 +50,27 @@ public class Collector extends Node {
 		
 		ALERT("Sending Money Withdrawl Request..");
 		String withdrawl_request = MessageFlag.BANK_WIT + ":" + amount;
-		bank.send(withdrawl_request);
+		boolean sent = false;
+		
+		while(!sent)
+			try {
+				sent = bank.send(withdrawl_request);
+			} catch (IOException err) {
+				ALERT_WITH_DELAY("Could not send request. Retrying...");
+			}
 		
 		String eCent;
 		String[] eCentBuffer = new String[amount];
 		int index = 0;
 		
-		while(index < amount && (eCent = bank.receive()) != null)
-			eCentBuffer[index++] = eCent;
+		while(index < amount)
+			try {
+				eCent = bank.receive();
+				eCentBuffer[index++] = eCent;
+			} catch (IOException err) {
+				ALERT_WITH_DELAY("Connection interrupted. Retrying...");
+				bank.reconnect();
+			}
 
 		eCentWallet.add(eCentBuffer);
 	}
@@ -65,29 +78,62 @@ public class Collector extends Node {
 	private boolean initiateWithDirector()
 	{
 		String connect_director = MessageFlag.C_INIT + ":DATA";
+		String result = null;
 		
-        return director.request(connect_director) != null;
+		while (result == null)
+			try {
+				result = director.request(connect_director);
+			} catch(IOException err) {
+				ALERT_WITH_DELAY("Could not contact director. Retrying...");
+				director.reconnect();
+			}
+		
+        return result != null;
 	}
 
-	private void sendDirectorData() throws IOException {
+	private void sendDirectorData(String dataType, String data) {
 		
 		ALERT("Connected! (Director)");
 		String temporary_eCent = eCentWallet.remove();
 
-		String data = MessageFlag.EXAM_REQ + ":" + "DATA" + ";" + collect() + ";" + temporary_eCent;
-
-		if(director.send(data)) {
-			ALERT("Request sent!");
-			ALERT("...");
+		try {
+			director.send(MessageFlag.EXAM_REQ + ":" + dataType);
+			
+			ANNOUNCE("Request sent!");
+			
+			ALERT("Awaiting response/encryption key...");
 
 			// Read response
-			String response = director.receive();
+			String encrypted_msg = director.receive();
+			Message msg = new Message(encrypted_msg);
 			
-			ALERT("Response recieved!");
-			ALERT("RESULT: " + response);
-		} else {
-			ALERT("Error: Couldn't send data to Director");
-			// Put eCent back in wallet if fucked up
+			if(msg.getFlag() == MessageFlag.PUB_KEY) {
+				PublicKey analyst_public_key = KeyFromString(msg.data);
+				ALERT("Public key recieved!");
+				
+				ALERT("Encrypting eCent!");
+				String encrypted_eCent = encrypt(temporary_eCent, analyst_public_key);
+
+				// send encrypted eCent + data
+				ALERT("Sending eCent!");
+				director.send(encrypted_eCent);
+				
+				ALERT("Sending data!");
+				director.send(data);
+				
+				Message analysis = new Message (director.receive());
+				ALERT("Receiving response...");
+				
+				if(analysis.getFlag() == MessageFlag.ERROR)
+					throw new IOException("Error processing!");
+				
+				ALERT("Response recieved!");
+				ANNOUNCE("RESULT: " + analysis.data);
+			}
+			
+		} catch(IOException err) {
+			// Error in sending
+			ALERT("Error: Connection to Director dropped.");
 			this.eCentWallet.add( temporary_eCent );
 		}
 

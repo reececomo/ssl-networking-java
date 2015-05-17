@@ -89,42 +89,58 @@ public class Bank extends Node {
 		}
 
 		public void run() {
-			String msgraw;
 			while (client.connected) {
-				if ((msgraw = client.receive()) != null) {
-					Message msg = new Message(msgraw);
+				try {
+					Message msg = new Message(client.receive());
 					switch (msg.getFlag()) {
 					
-					case MessageFlag.BANK_WIT:
-						ALERT("Collector connected  -->  Withdrawing money");
-						int amount = Integer.parseInt(msg.data);
-						ALERT("Generating " + amount + " eCents!");
-						
-						for (int i = 0; i < amount; i++)
-							client.send(generateEcent());
-	
-						ALERT("Money sent");
-						break;
-	
-					case MessageFlag.BANK_DEP:
-						ALERT("Analyst connected  -->  Depositing money");
-	
-						// Check if eCent is in valid eCent set
-						if (bankStore.contains(msg.data)) {
-							ALERT("Depositing valid eCent");
-							ALERT("Sending acknowledgement to Analyst!");
-							client.send("VALID");
-							bankStore.remove(msg.data);
-						} else {
-							ALERT("Rejecting invalid eCent");
-							client.send("INVALID");
-						}
-						break;
-	
+						/*
+						 * Bank Withdrawal
+						 */
+						case MessageFlag.BANK_WIT:
+							ALERT("Collector connected  -->  Withdrawing money");
+							
+							int amount = Integer.parseInt(msg.data);
+							ALERT("Generating " + amount + " eCents!");
+							
+							for (int i = 0; i < amount; i++)
+								client.send(generateEcent());
+		
+							ALERT("Money sent");
+							break;
+							
+							
+						/*
+						 * Bank Deposit
+						 */
+						case MessageFlag.BANK_DEP:
+							ALERT("Analyst connected  -->  Depositing money");
+		
+							// Check if eCent is in valid eCent set
+							if (bankStore.contains(msg.data)) {
+								
+								ALERT("Depositing valid eCent");
+								ALERT("Sending acknowledgement to Analyst!");
+								client.send("VALID");
+								bankStore.remove(msg.data);
+								
+							} else {
+								
+								ALERT("Rejecting invalid eCent");
+								client.send("INVALID");
+								
+							}
+							
+							break;
+							
+						default:
+							ALERT("Unexpected input: " + msg.raw());
+							break;
+		
 					}
 	
 					ALERT("Request finished!");
-				} else {
+				} catch(IOException err) {
 					ALERT("Closing connection");
 					client.close();
 				}

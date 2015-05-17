@@ -21,17 +21,21 @@ import javax.net.ssl.SSLSocketFactory;
 public class ServerConnection {
 	private OutputStreamWriter writer;
 	private BufferedReader reader;
-	private SSLSocket sslSocket;
+	private SSLSocket sslSocket = null;
 	public boolean busy = false;
 	public boolean connected = false;
 	public String public_key;
+	private String ip;
+	private int port;
 	
 	public ServerConnection(SSLSocket socket) {
 		sslSocket = socket;
 		this.connected = startServer();
 	}
 	
-	public ServerConnection(String ip, int port) {
+	public ServerConnection(String myip, int myport) {
+		ip = myip;
+		port = myport;
 		try {
 			// SSL Socket
 			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
@@ -59,34 +63,48 @@ public class ServerConnection {
 			
 			return true;
 		} catch (Exception err) {
+			System.err.println(err);
 			return false;
 		}
 	}
 	
-	public boolean send(String msg) {
+	public boolean reconnect() {
+		if(sslSocket==null && ip != null)
+			try {
+				SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+				sslSocket = (SSLSocket)sslsf.createSocket(ip, port);
+			} catch(Exception er) {
+				System.out.println("Fuck");
+				return false;
+			}
+		
+		this.close();
+		this.connected = startServer();
+		
+		return connected;
+	}
+	
+	public boolean send(String msg) throws IOException {
 		try {
 			writer.write(msg + "\n");
 			writer.flush();
+	
 			return true;
-		} catch (Exception err) {
-			this.connected = false;
-			return false;
+		} catch (NullPointerException err) {
+			throw new IOException("No Socket");
 		}
 	}
 	
-	public String receive() {
+	public String receive() throws IOException {
 		try {
-			String msg = reader.readLine();
-			return msg;
-			
-		} catch (Exception err) {
-			this.connected = false;
-			//err.printStackTrace();
+			writer.flush();
+			return reader.readLine();
+		} catch (NullPointerException err) {
+			throw new IOException("No Socket");
 		}
-		return null;
 	}
 	
-	public String request(String msg) {
+	public String request(String msg) throws IOException  {
 		send( msg );
 		return receive();
 	}

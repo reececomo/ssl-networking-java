@@ -30,6 +30,7 @@ public class Node extends Security {
 	// Default Constants
 	protected final static int DATA = 0;
 	protected final static int ECENT = 1;
+	protected final static int PKEY = 1;
 
 	private final static int DEFAULT_PAUSE_LENGTH = 2500; // 2500 milliseconds
 	private final static int SHORT_PAUSE_LENGTH = 200; // 1.5 second

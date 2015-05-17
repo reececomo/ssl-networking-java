@@ -10,14 +10,16 @@ package lib;
  
 public class Message {
 	
-	private enum Flag { NONE, INIC, INIA, DOIT, WIT, DEP };
+	private enum Flag { NONE, INIC, INIA, DOIT, WIT, DEP, PUBK, Error };
 	private Flag flag; 			// flag cannot be changed
 	public String data; 			// contents can be referenced Message.content
     
   public Message(String rawMessage){
 	  try {
-	      this.flag = Flag.valueOf(rawMessage.split(":")[0]);
-	      this.data = rawMessage.split(":")[1];
+		  String[] parts = rawMessage.split(":");
+		  this.flag = Flag.valueOf(parts[0]);
+		  if (parts.length > 1)
+			  this.data = parts[1];
 	      
 	  } catch (Exception e) {
 		  this.data = rawMessage;
@@ -46,7 +48,7 @@ public class Message {
   }
   
   // For messages in the standard form:
-  // "INIT_FLAG:DATA;DATA;DATA"
+  // "INIT_FLAG:DATA;DATA;DATA; ... ;"
   public String[] getData() {
 	  try {
 		String[] array = this.data.split(";");
