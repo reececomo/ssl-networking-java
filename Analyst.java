@@ -1,3 +1,5 @@
+import java.security.*;
+
 import lib.*;
 
 /**
@@ -11,6 +13,8 @@ public class Analyst extends Node {
 	private ServerConnection bank, director;
 	
 	private String analyst_type;
+	private PrivateKey private_key;
+	private PublicKey public_key;
 
 	public static void main(String[] args) {
 		String type = "DATA";
@@ -25,6 +29,8 @@ public class Analyst extends Node {
 	public Analyst(String analyst_type) {
 		set_type("ANALYST-"+analyst_type);
 		this.analyst_type = analyst_type;
+		
+		this.generateKeyPair();
 		
 		SSLHandler.declareDualCert("SSL_Certificate","cits3002");
 		
@@ -46,8 +52,8 @@ public class Analyst extends Node {
 	// Send data type to Director
 	private boolean registerWithDirector() {
 		ANNOUNCE("Registering availability with Director");
-		
-		String register_message = MessageFlag.A_INIT + ":" + this.analyst_type;
+		// Send "flag:type;public_key"
+		String register_message = MessageFlag.A_INIT + ":" + this.analyst_type + ";" + StringFromKey(this.public_key);
 		return director.request(register_message).equals("REGISTERED");
 	}
 	
@@ -67,16 +73,14 @@ public class Analyst extends Node {
 		String[] message;
 		
 		while (true) {
-			ALERT("Idle...");
-			
-			//InConnection director_in = new InConnection(localhost.socket());
+			ALERT("Awaiting request...");
 			String request = director.receive();
 			ALERT("Receiving request!");
 			
 			if ((message = decrypt(request)) == null) {
 				System.err.println("Could not decrypt message!");
 				
-			} else { 
+			} else {
 				// Successful decryption
 				ALERT("Receiving payment...");
 				if ( depositMoney( message[ ECENT ] )) {
@@ -94,6 +98,26 @@ public class Analyst extends Node {
 		}
 	}
 	
+	private void generateKeyPair() {
+		try {
+			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+			keyGen.initialize(2048);
+			KeyPair pair = keyGen.generateKeyPair();
+			private_key = pair.getPrivate();
+			public_key = pair.getPublic();
+			
+			ALERT(StringFromKey(public_key));
+			PublicKey pk2 = KeyFromString(StringFromKey(public_key));
+			String message = encrypt("lolwhat",pk2);
+			ALERT(message);
+			ALERT(decrypt(message,private_key));
+			
+		} catch (NoSuchAlgorithmException e) {
+			ANNOUNCE("ERROR: Error generating secure socket keys");
+			System.exit(-1);
+		}
+	}
+	
 	private String[] decrypt(String encryptedMsg) {
 		
 		// Perform decryption here
@@ -104,9 +128,6 @@ public class Analyst extends Node {
 	private String analyse(String analysisType, String rawdata) {
 		
 		// Analyse data here
-		
 		return "SUCCESS";
 	}
-	
-	
 }

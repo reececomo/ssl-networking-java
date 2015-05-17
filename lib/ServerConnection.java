@@ -24,6 +24,7 @@ public class ServerConnection {
 	private SSLSocket sslSocket;
 	public boolean busy = false;
 	public boolean connected = false;
+	public String public_key;
 	
 	public ServerConnection(SSLSocket socket) {
 		sslSocket = socket;

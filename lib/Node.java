@@ -1,5 +1,10 @@
 package lib;
 
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -14,7 +19,7 @@ import java.net.UnknownHostException;
  * 
  */
 
-public class Node {
+public class Node extends Security {
 	
 	// Default ports and IP Addresses
 	protected static int dirPort = 9998;
@@ -76,6 +81,19 @@ public class Node {
 		}
 		
 		return params_given;
+	}
+	
+	public void saveToFile(String fileName,
+	  BigInteger mod, BigInteger exp) throws IOException {
+	  ObjectOutputStream oout = new ObjectOutputStream( new BufferedOutputStream(new FileOutputStream(fileName)));
+	  try {
+	    oout.writeObject(mod);
+	    oout.writeObject(exp);
+	  } catch (Exception e) {
+	    throw new IOException("Could not save file to disk! ", e);
+	  } finally {
+	    oout.close();
+	  }
 	}
 
 	// Announce makes a huge block
