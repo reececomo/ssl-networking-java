@@ -18,6 +18,7 @@ public class Collector extends Node {
 	
 	private ServerConnection bank, director;
 
+	private int xpos = 0, ypos = 0;
 	
 	public static void main(String[] args) throws IOException {
 		load_ip_addresses(args);
@@ -42,7 +43,7 @@ public class Collector extends Node {
 		ANNOUNCE(eCentWallet.displayBalance());
 
 		if(bank.connected && initiateWithDirector())
-			sendDirectorData("DATA",collect());
+			this.run();
 	}
 
 
@@ -91,7 +92,7 @@ public class Collector extends Node {
         return result != null;
 	}
 
-	private void sendDirectorData(String dataType, String data) {
+	private String analyse_data(String dataType, String data) throws IOException {
 		
 		ALERT("Connected! (Director)");
 		String temporary_eCent = eCentWallet.remove();
@@ -128,24 +129,63 @@ public class Collector extends Node {
 					throw new IOException("Error processing!");
 				
 				ALERT("Response recieved!");
-				ANNOUNCE("RESULT: " + analysis.data);
+				return analysis.data;
 			}
 			
 		} catch(IOException err) {
 			// Error in sending
 			ALERT("Error: Connection to Director dropped.");
 			this.eCentWallet.add( temporary_eCent );
+			throw new IOException("Could not analyse data!");
 		}
-
+		
+		return null;
 	}
 
-	private String collect(){
-		int[] array= new int[10];
-		Random rand = new Random();
-		for (int i=0; i<10; i++){
-			array[i]=rand.nextInt();
+	private String sensor(){
+		return "All-Clear";
+	}
+	
+	private void run() {
+		String moves = "01001203132321";
+		char[] movements = moves.toCharArray();
+		
+		try {
+			moves = analyse_data("NAV",coordinates_to_string(0,0,12,12));
+			
+			for(char move : movements) {
+				// Do something
+				// simulate movement?
+				
+				// if hit object on next movement run something
+				// like --> analyse_data("ORC","Unicorn:SMALL");
+				switch(move) {
+					case LEFT:
+						this.xpos--;
+						break;
+						
+					case RIGHT:
+						this.xpos++;
+						break;
+						
+					case UP:
+						this.ypos++;
+						break;
+						
+					case DOWN:
+						this.ypos--;
+						break;
+						
+					default:
+						ALERT("INVALID");
+						break;
+				
+				}
+				
+			}
+		} catch(IOException er) {
+			
 		}
-		System.out.println(Arrays.toString(array));	
-		return Arrays.toString(array);
+		
 	}
 }

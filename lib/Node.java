@@ -31,6 +31,14 @@ public class Node extends Security {
 	protected final static int DATA = 0;
 	protected final static int ECENT = 1;
 	protected final static int PKEY = 1;
+	
+	protected final static char LEFT = '0';
+	protected final static char RIGHT = '1';
+	protected final static char UP = '2';
+	protected final static char DOWN = '3';
+
+	protected final static int x = 0;
+	protected final static int y = 1;
 
 	private final static int DEFAULT_PAUSE_LENGTH = 2500; // 2500 milliseconds
 	private final static int SHORT_PAUSE_LENGTH = 200; // 1.5 second
@@ -48,6 +56,23 @@ public class Node extends Security {
 		} catch (UnknownHostException e) {
 			return "UnknownHost";
 		}
+	}
+	
+	public static int[] extract_coordinates(String str) {
+		try {
+			String[] s = str.split(",");
+			int[] coord = new int[2];
+			coord[x] = Integer.parseInt(s[0]);
+			coord[y] = Integer.parseInt(s[1]);
+			
+			return coord;
+		} catch (Exception er) {
+			return new int[2];
+		}
+	}
+	
+	public static String coordinates_to_string(int x1, int y1, int x2, int y2) {
+		return ""+x1+","+y1+":"+x2+","+y2;
 	}
 	
 	public static int load_ip_addresses(String[] args) {

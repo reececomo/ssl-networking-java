@@ -13,7 +13,7 @@ public class Analyst extends Node {
 	
 	private ServerConnection bank, director;
 	
-	private String analyst_type = "DATA";
+	private String analyst_type = "NAV"; // [navigator] or "ORC" [object response coordinator]
 	
 	private PrivateKey private_key;
 	private PublicKey public_key;
@@ -137,9 +137,45 @@ public class Analyst extends Node {
 	}
 	
 	private String analyse(String rawdata) {
-		
 		// Analyse data here
+		String[] data = rawdata.split(":");
 		
-		return "SUCCESS";
+		switch(analyst_type) {
+		
+			/**
+			 *  Navigator Analyst
+			 */
+			case "NAV":
+				int[] start = extract_coordinates(data[0]);
+				int[] end = extract_coordinates(data[1]);
+				
+				// Write code here
+				// 	Path-finding (or generating)
+				// Access to:
+				//  start[x],start[y],end[x],end[y]
+				// Output should be a character array:
+				char[] instructions = {LEFT,DOWN,DOWN,DOWN,RIGHT,RIGHT,
+						RIGHT,DOWN,DOWN,LEFT,DOWN,DOWN};
+				
+				return new String(instructions);
+				
+			/**
+			 * Object Response Coordinator
+			 */
+			case "ORC":
+				String object = data[0];
+				String size = data[1];
+				
+				if (object.equals("Unicorn") || size.equals("SMALL"))
+					return "LAZER";
+				else
+					return "MOVE";
+				
+			/**
+			 * Invalid analyst given
+			 */
+			default: // Invalid Analyst Type
+				return MessageFlag.ERROR;
+		}
 	}
 }
