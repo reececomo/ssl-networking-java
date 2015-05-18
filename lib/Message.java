@@ -45,7 +45,7 @@ public class Message {
   
   public Flag getFlagEnum() {
   
-  	return this.flag = flag;
+  	return this.flag;
   }
   
   public String raw() {
