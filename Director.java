@@ -110,13 +110,14 @@ public class Director extends Node {
 					Message msg = new Message(client.receive());
 					String[] msg_data = msg.getData();
 					
-					switch (msg.getFlag()) {
+					switch (msg.getFlagEnum()) {
 
 					/*
 					 * C_INIT
 					 * Initiate collector
+					 * C_INIT => INIC
 					 */
-					case MessageFlag.C_INIT:
+					case INIC:
 						// Collector connecting
 						ALERT("Collector connected...");
 						String data_type_available = "" + analystPool.containsKey(msg.data);
@@ -127,8 +128,9 @@ public class Director extends Node {
 					/*
 					 * A_INIT
 					 * Initiate analyst
+					 * A_INIT => INIA
 					 */
-					case MessageFlag.A_INIT:
+					case INIA:
 						if (!analystPool.containsKey(msg_data[DATA_TYPE])) {
 							
 							HashSet<ServerConnection> newpool = new HashSet<ServerConnection>();
@@ -151,9 +153,9 @@ public class Director extends Node {
 					/*
 					 * EXAM_REQ:
 					 * Data analysis request
-					 * 
+					 * EXAM_REQ => DOIT
 					 */
-					case MessageFlag.EXAM_REQ:
+					case DOIT:
 						ALERT("Collector sending request...");
 						ALERT("Data Analysis request recieved");
 						boolean success = false;
