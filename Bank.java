@@ -92,12 +92,13 @@ public class Bank extends Node {
 			while (client.connected) {
 				try {
 					Message msg = new Message(client.receive());
-					switch (msg.getFlag()) {
+					switch (msg.getFlagEnum()) {
 					
 						/*
 						 * Bank Withdrawal
+						 * BANK_WIT => WIT
 						 */
-						case MessageFlag.BANK_WIT:
+						case WIT:
 							ALERT("Collector connected  -->  Withdrawing money");
 							
 							int amount = Integer.parseInt(msg.data);
@@ -112,8 +113,9 @@ public class Bank extends Node {
 							
 						/*
 						 * Bank Deposit
+						 * BANK_DEP => DEP
 						 */
-						case MessageFlag.BANK_DEP:
+						case DEP:
 							ALERT("Analyst connected  -->  Depositing money");
 		
 							// Check if eCent is in valid eCent set
