@@ -52,11 +52,20 @@ public class Collector extends Node {
 		try {
 			while(true) {
 				// analyse_data(node,coordinates) = String e.g. "01001203132321"
-				char[] movements = analyse_data("NAV", coordinates).toCharArray(); // e.g. [0,1,0,0,1,2,0,3,1,3,2,3,2,1]
+				
+				ANNOUNCE("Requesting navigation analysis...");
+				String movementString = analyse_data("NAV", coordinates);
+				char[] movements = movementString.toCharArray(); // e.g. [0,1,0,0,1,2,0,3,1,3,2,3,2,1]
+				
+				ALERT("Analysis recieved.");
 				
 				for(char move : movements) {
 					// Do something
 					// simulate movement?
+					
+					// sense surroundings?
+					String action = sensor();
+					ALERT(action);
 					
 					// if hit object on next movement run something
 					// like --> analyse_data("ORC","Unicorn:SMALL");
@@ -66,7 +75,6 @@ public class Collector extends Node {
 						case DOWN: this.ypos--; break;
 						case UP: this.ypos++; break;
 					}
-					
 				}
 			}
 		} catch(IOException er) {
@@ -135,8 +143,6 @@ public class Collector extends Node {
 
 		try {
 			director.send(MessageFlag.EXAM_REQ + ":" + dataType);
-			
-			ANNOUNCE("Request sent!");
 			
 			ALERT("Awaiting response/encryption key...");
 

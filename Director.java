@@ -10,8 +10,7 @@ import lib.*;
 /**
  * Director Node class
  * 
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexaner
- *         Popoff-Asotoff
+ * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
  * @version 5.9.15
  *
  */
