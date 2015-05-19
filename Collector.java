@@ -1,7 +1,5 @@
 import java.io.*;
 import java.security.PublicKey;
-import java.util.Random;
-import java.util.Arrays;
 
 import lib.*;
 
@@ -43,32 +41,38 @@ public class Collector extends Node {
 
 		if(bank.connected && initiateWithDirector())
 			this.runCollector();
+		else
+			ALERT("Error: "+bank.connected);
 	}
 	
 	private void runCollector() {
 		int[] dest = {12,12};
 		String coordinates = stringCoords(xpos,ypos,dest[x],dest[y]); // "0,0:12:12"
-		
-		try {
-			while(true) {
-				// analyse_data(node,coordinates) = String e.g. "01001203132321"
+
+		ANNOUNCE("Requesting navigation analysis...");
+		while(true) {
+			try {
+				String movementString = analyse_data("NAV", coordinates); // e.g. "01001203132321"
 				
-				ANNOUNCE("Requesting navigation analysis...");
-				String movementString = analyse_data("NAV", coordinates);
 				char[] movements = movementString.toCharArray(); // e.g. [0,1,0,0,1,2,0,3,1,3,2,3,2,1]
 				
 				ALERT("Analysis recieved.");
+				
+				if (movements.length > 0)
+					ANNOUNCE("MOVING");
 				
 				for(char move : movements) {
 					// Do something
 					// simulate movement?
 					
 					// sense surroundings?
-					String action = sensor();
-					ALERT(action);
+					//String action = sensor();
+					//If action is lazer, make lazer sound
+					//ALERT(action);
 					
 					// if hit object on next movement run something
-					// like --> analyse_data("ORC","Unicorn:SMALL");
+					// analyse_data("ORC","Unicorn:SMALL");
+					
 					switch(move) {
 						case LEFT: this.xpos--; break;
 						case RIGHT:this.xpos++; break;
@@ -76,9 +80,11 @@ public class Collector extends Node {
 						case UP: this.ypos++; break;
 					}
 				}
+				
+			} catch(IOException er) {
+				ERROR(""+er.getMessage());
+				ALERT_WITH_DELAY(colour("(Retrying...)",BLUE));
 			}
-		} catch(IOException er) {
-			
 		}
 	}
 
@@ -96,8 +102,8 @@ public class Collector extends Node {
 		while(!sent)
 			try {
 				sent = bank.send(withdrawl_request);
-			} catch (IOException err) {
-				ALERT_WITH_DELAY("Could not send request. Retrying...");
+			} catch (Exception err) {
+				ERROR_WITH_DELAY("Could not send request. Retrying...");
 			}
 		
 		String eCent;
@@ -109,7 +115,7 @@ public class Collector extends Node {
 				eCent = bank.receive();
 				eCentBuffer[index++] = eCent;
 			} catch (IOException err) {
-				ALERT_WITH_DELAY("Connection interrupted. Retrying...");
+				ERROR_WITH_DELAY("Connection interrupted. Retrying...");
 				bank.reconnect();
 			}
 
@@ -121,11 +127,13 @@ public class Collector extends Node {
 		String connect_director = MessageFlag.C_INIT + ":DATA";
 		String result = null;
 		
+		ALERT("Connected! (Director)");
+		
 		while (result == null)
 			try {
 				result = director.request(connect_director);
 			} catch(IOException err) {
-				ALERT_WITH_DELAY("Could not contact director. Retrying...");
+				ERROR_WITH_DELAY("Could not contact director. Retrying...");
 				director.reconnect();
 			}
 		
@@ -133,8 +141,6 @@ public class Collector extends Node {
 	}
 
 	private String analyse_data(String dataType, String data) throws IOException {
-		
-		ALERT("Connected! (Director)");
 		
 		if (eCentWallet.isEmpty())
 			buyMoney(100);
@@ -144,10 +150,11 @@ public class Collector extends Node {
 		try {
 			director.send(MessageFlag.EXAM_REQ + ":" + dataType);
 			
-			ALERT("Awaiting response/encryption key...");
+			ALERT("Sending request...");
 
 			// Read response
 			String encrypted_msg = director.receive();
+			
 			Message msg = new Message(encrypted_msg);
 			
 			if(msg.getFlag() == MessageFlag.PUB_KEY) {
@@ -168,19 +175,20 @@ public class Collector extends Node {
 				ALERT("Receiving response...");
 				
 				if(analysis.getFlag() == MessageFlag.ERROR)
-					throw new IOException("Error processing!");
+					throw new IOException(analysis.raw());
 				
 				ALERT("Response recieved!");
 				return analysis.data;
-			}
+			} else
+				if(msg.getFlag() != MessageFlag.ERROR)
+					throw new IOException("Unexpected message format!");
+				else
+					throw new IOException(msg.raw());
 			
 		} catch(IOException err) {
 			// Error in sending
-			ALERT("Error: Connection to Director dropped.");
 			this.eCentWallet.add( temporary_eCent );
-			throw new IOException("Could not analyse data!");
+			throw new IOException(err.getMessage());
 		}
-		
-		return null;
 	}
 }

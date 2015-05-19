@@ -39,6 +39,17 @@ public class Node extends Security {
 
 	protected final static int x = 0;
 	protected final static int y = 1;
+	
+	// Colours
+	public static final String RESET = "\u001B[0m";
+	public static final String BLACK = "\u001B[30m";
+	public static final String RED = "\u001B[31m";
+	public static final String GREEN = "\u001B[32m";
+	public static final String YELLOW = "\u001B[33m";
+	public static final String BLUE = "\u001B[34m";
+	public static final String PURPLE = "\u001B[35m";
+	public static final String CYAN = "\u001B[36m";
+	public static final String WHITE = "\u001B[37m";
 
 	private final static int DEFAULT_PAUSE_LENGTH = 2500; // 2500 milliseconds
 	private final static int SHORT_PAUSE_LENGTH = 200; // 1.5 second
@@ -73,6 +84,10 @@ public class Node extends Security {
 	
 	public static String stringCoords(int x1, int y1, int x2, int y2) {
 		return ""+x1+","+y1+":"+x2+","+y2;
+	}
+	
+	public String colour(String text, String COLOUR) {
+		return new String(COLOUR + text + RESET);
 	}
 	
 	public static int load_ip_addresses(String[] args) {
@@ -127,13 +142,37 @@ public class Node extends Security {
 	// Alert with delay makes one line for however many seconds
 	public void ANNOUNCE (String state) {
 		this.STATE = state;
-		System.out.println("\n<< " + this.NODE_TYPE + ": " + this.STATE + " >>\n");
+		System.out.println("\n<< " + colour(this.NODE_TYPE,BLUE) + ": " + this.STATE + " >>\n");
 	}
 	
 	public void ALERT (String message) {
 		try {
 			System.out.println(" >> " + message);
 			Thread.sleep( SHORT_PAUSE_LENGTH );
+			
+		} catch (Exception err) { err.printStackTrace(); }
+	}
+	
+	public void ERROR(String message) {
+		try {
+			System.out.println(colour(" >> " + message,RED));
+			Thread.sleep( SHORT_PAUSE_LENGTH );
+			
+		} catch (Exception err) { err.printStackTrace(); }
+	}
+	
+	public void SUCCESS(String message) {
+		try {
+			System.out.println(colour(" >> " + message,GREEN));
+			Thread.sleep( SHORT_PAUSE_LENGTH );
+			
+		} catch (Exception err) { err.printStackTrace(); }
+	}
+	
+	public void ERROR_WITH_DELAY(String message) {
+		try {
+			System.out.println(colour(" >> " + message,RED));
+			Thread.sleep( DEFAULT_PAUSE_LENGTH );
 			
 		} catch (Exception err) { err.printStackTrace(); }
 	}

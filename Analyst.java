@@ -153,8 +153,8 @@ public class Analyst extends Node {
 			 *  Navigator Analyst
 			 */
 			case NAV:
-				int[] start = extract_coordinates(data[0]);
-				int[] end = extract_coordinates(data[1]);
+				//int[] start = extract_coordinates(data[0]);
+				//int[] end = extract_coordinates(data[1]);
 				
 				// Write code here
 				// 	Path-finding (or generating)

@@ -6,6 +6,7 @@ import java.util.*;
 import javax.net.ssl.*;
 
 import lib.*;
+import lib.ServerConnection.NodeType;
 
 /**
  * Director Node class
@@ -21,6 +22,7 @@ public class Director extends Node {
 
 	private static final int DATA_TYPE = 0;
 	private static final int PUBLIC_KEY = 1;
+	public static int con = 0;
 
 	private HashMap<String, HashSet<ServerConnection>> analystPool; // explained
 																	// in
@@ -103,8 +105,11 @@ public class Director extends Node {
 		}
 
 		public void run() {
+			
+			ServerConnection currentAnalyst = null;
+			HashSet<ServerConnection> currentAnalystPool = null;
+			
 			while (client.connected && !client.busy) {
-				
 				try {
 					Message msg = new Message(client.receive());
 					String[] msg_data = msg.getData();
@@ -118,7 +123,8 @@ public class Director extends Node {
 					 */
 					case INIC:
 						// Collector connecting
-						ALERT("Collector connected...");
+						ALERT(colour("Collector",PURPLE)+" connected...");
+						client.nodeType = NodeType.COLLECTOR;
 						String data_type_available = "" + analystPool.containsKey(msg.data);
 						client.send(data_type_available);
 
@@ -131,6 +137,9 @@ public class Director extends Node {
 					 */
 					case INIA:
 						if (!analystPool.containsKey(msg_data[DATA_TYPE])) {
+
+							ALERT(colour("Analyst",PURPLE) + " connected... (" + msg_data[DATA_TYPE] + ")");
+							client.nodeType = NodeType.ANALYST;
 							
 							HashSet<ServerConnection> newpool = new HashSet<ServerConnection>();
 							newpool.add(client);
@@ -140,8 +149,6 @@ public class Director extends Node {
 							HashSet<ServerConnection> existingpool = analystPool.get(msg_data[DATA_TYPE]);
 							existingpool.add(client);
 						}
-
-						ALERT("Analyst connected... (" + msg_data[DATA_TYPE] + ")");
 						
 						client.public_key = msg_data[PUBLIC_KEY];
 						client.send("REGISTERED");
@@ -160,13 +167,14 @@ public class Director extends Node {
 						boolean success = false;
 
 						// Get list of analysts for this data type
-						HashSet<ServerConnection> datatype_analysts = analystPool.get(msg_data[DATA_TYPE]);
+						currentAnalystPool = analystPool.get(msg_data[DATA_TYPE]);
 						
 						// If there are some analysts
-						if (datatype_analysts != null) {
+						if (currentAnalystPool != null) {
 							
 							// Try some analyst until you find one that's free and connected
-							for (ServerConnection analyst : datatype_analysts) {
+							for (ServerConnection analyst : currentAnalystPool) {
+								currentAnalyst = analyst;
 								
 								if (!busyAnalyst.contains(analyst)) {
 									// Reserve the analyst
@@ -175,52 +183,57 @@ public class Director extends Node {
 									ALERT("Analyst found! Sending Collector the analyst public key...");
 									String eCent = client.request(MessageFlag.PUB_KEY + ":" + analyst.public_key);
 									String data = null,result = null;
-									
-									data = client.receive();
-									
-									if (analyst.connected) {
-										
-										// Send eCent and data, and request result
-										analyst.send(MessageFlag.EXAM_REQ + ":" + eCent);
-										result = analyst.request(data);
-										
-										ALERT("Analysis received! Forwarding to Collector.");
 
-										client.send(result);
+									data = client.receive();
 										
-										ALERT("Result returned to Collector");
-										success = true;
+									// Send eCent and data, and request result
+									if(analyst.send(MessageFlag.EXAM_REQ + ":" + eCent)
+											&& analyst.send(data))
+										result = analyst.receive();
+									else {
+										if(currentAnalyst!=null) {
+											if(busyAnalyst.contains(currentAnalyst))
+												busyAnalyst.remove(currentAnalyst);
 											
-										busyAnalyst.remove(analyst);
+											if(currentAnalystPool!=null && currentAnalystPool.contains(currentAnalyst))
+												currentAnalystPool.remove(currentAnalyst);
+										}
 										break;
-										
-									} else {
-										ALERT("Analyst crashed after recieving ecent.. trying next one");
-										datatype_analysts.remove(analyst); // disconnect analyst
-										busyAnalyst.remove(analyst);
 									}
+									
+									SUCCESS("Analysis received! Forwarding to Collector.");
+
+									client.send(result);
+									
+									ALERT("Returning result to Collector");
+									success = true;
+										
+									busyAnalyst.remove(analyst);
+									break;
 								}
 							}
 						}
 
-						if (success) {
-							ALERT("Finished analysis!");
-						}else {
+						if (!success) {
 							client.send("Error: No analysts currently available!");
-							ALERT("Error: No analysts currently available!");
+							ERROR("Error: No analysts currently available!");
 						} 
 
 						break;
 
 					default:
-						ALERT("Unrecognised message: " + msg.raw());
+						ERROR("Unrecognised message: " + msg.raw());
 						break;
 
 					}
-				} catch(IOException err) {
-					ALERT("Closing connection");
-					client.close();
-					break;
+					
+				}catch(IOException err) {
+					
+					/*
+					 * Make sure to remove the analyst
+					 */
+					
+					ERROR(""+err.getMessage());
 				}
 			}
 		}

@@ -6,6 +6,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 
 import javax.net.ssl.SSLSocket;
@@ -19,7 +22,11 @@ import javax.net.ssl.SSLSocketFactory;
  */
 
 public class ServerConnection {
-	private OutputStreamWriter writer;
+	private enum ServerType {CLIENT, SERVER};
+	public enum NodeType {UNDECLARED, ANALYST, COLLECTOR}
+	private ServerType type;
+	public NodeType nodeType = NodeType.UNDECLARED;
+	private PrintWriter writer;
 	private BufferedReader reader;
 	private SSLSocket sslSocket = null;
 	public boolean busy = false;
@@ -29,29 +36,34 @@ public class ServerConnection {
 	private int port;
 	
 	public ServerConnection(SSLSocket socket) {
+		type = ServerType.CLIENT;
+		
 		sslSocket = socket;
+		InetSocketAddress addr = (InetSocketAddress) sslSocket.getRemoteSocketAddress();
+		
+		ip = addr.getHostName();
+		port = addr.getPort();
+		
 		this.connected = startServer();
 	}
 	
 	public ServerConnection(String myip, int myport) {
+		type = ServerType.SERVER;
+		
 		ip = myip;
 		port = myport;
-		try {
-			// SSL Socket
-			SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-			sslSocket = (SSLSocket)sslsf.createSocket(ip, port);
-			this.connected = startServer();
-			
-		} catch (UnknownHostException e) {
-			System.err.println("No host found at "+ip+":"+port+".");
-			
-		} catch (IOException e) {
-			System.err.println("No listening host at "+ip+":"+port+".");
-		} 
+		
+		this.connected = startServer();
 	}
 	
 	public boolean startServer() {
 		try {
+			if(type.equals(ServerType.SERVER)) {
+				//create server socket
+				SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
+				sslSocket = (SSLSocket)sslsf.createSocket(ip, port);
+			}
+			
 			// Create input buffer
 			InputStream inputstream = sslSocket.getInputStream();
 			InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
@@ -59,62 +71,81 @@ public class ServerConnection {
 	
 			// Create output stream
 			OutputStream outputStream = sslSocket.getOutputStream();
-			writer = new OutputStreamWriter(outputStream); 
+			writer = new PrintWriter(outputStream); 
 			
 			return true;
-		} catch (Exception err) {
-			System.err.println(err);
-			return false;
+		} catch (UnknownHostException e) {
+			System.err.println("No host found at "+ip+":"+port+".");
+		
+		} catch (ConnectException err) {
+			System.err.println("Connection refused "+ip+":"+port+".");
+			
+		} catch (IOException e) {
+			System.err.println("Connection error: " + e);
 		}
+		
+		return false;
 	}
 	
 	public boolean reconnect() {
-		if(sslSocket==null && ip != null)
-			try {
-				SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
-				sslSocket = (SSLSocket)sslsf.createSocket(ip, port);
-			} catch(Exception er) {
-				System.out.println("Fuck");
-				return false;
-			}
-		
 		this.close();
-		this.connected = startServer();
-		
-		return connected;
+		return this.startServer();
 	}
 	
-	public boolean send(String msg) throws IOException {
+	public boolean send(String msg) {
+		boolean errors = true;
 		try {
-			writer.write(msg + "\n");
 			writer.flush();
-	
-			return true;
-		} catch (NullPointerException err) {
-			throw new IOException("No Socket");
+			writer.write(msg + "\n");
+			
+			if (writer!=null)
+				errors = writer.checkError();
+			
+		} catch (Exception Err) {
+			System.out.println("WOO4"+Err);
+			errors = true;
 		}
+		
+		if(errors)
+			this.close();
+		
+		return errors == false;
 	}
 	
 	public String receive() throws IOException {
-		try {
-			writer.flush();
-			return reader.readLine();
-		} catch (NullPointerException err) {
-			throw new IOException("No Socket");
+		String input = null;
+		
+		if(this.connected)  {
+			try {
+				if((input=reader.readLine()) != null)
+					return input;
+				else {
+					this.close();
+					throw new IOException("Connection error"); //null returned
+				}
+	
+			} catch (NullPointerException err) { }
 		}
+		
+		return null;
 	}
 	
-	public String request(String msg) throws IOException  {
-		send( msg );
-		return receive();
+	public String request(String msg) throws IOException {
+		if(send(msg))
+			return receive();
+		else
+			throw new IOException("Could not send message");
 	}
 	
 	public void close() {
 		try{
-			this.connected = false;
-			this.sslSocket.close();
+			if(this.connected)
+			{ 
+				this.connected = false;
+				this.sslSocket.close();
+			}
 		}catch(Exception err) {
-			//err.printStackTrace();
+			err.printStackTrace();
 		}
 	}
 }

@@ -56,7 +56,7 @@ public class Bank extends Node {
 					ALERT("Accepting a connection!");
 
 				} catch (IOException e) {
-					System.out.println("Error connecting client");
+					ERROR("Error connecting client");
 				}
 
 				new Thread(new bankConnection(sslsocket)).start(); // start new
@@ -142,8 +142,8 @@ public class Bank extends Node {
 					}
 	
 					ALERT("Request finished!");
-				} catch(IOException err) {
-					ALERT("Closing connection");
+				} catch (IOException err) {
+					ALERT("Closing connection + " + client.connected + err);
 					client.close();
 				}
 			}
