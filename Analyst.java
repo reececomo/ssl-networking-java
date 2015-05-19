@@ -11,21 +11,28 @@ import lib.*;
 
 public class Analyst extends Node {
 	
+	// The persistent connections
 	private ServerConnection bank, director;
+
+	// Analyst subtypes (add here)
+	private enum AnalystType { NAV, ORC }
+	private AnalystType analyst_type = AnalystType.NAV; // [navigator] or "ORC" [object response coordinator]
 	
-	private String analyst_type = "NAV"; // [navigator] or "ORC" [object response coordinator]
-	
+	// Local keys
 	private PrivateKey private_key;
 	private PublicKey public_key;
 
+	/*
+	 * Main
+	 */
 	public static void main(String[] args) {
 		load_ip_addresses(args);
-		
 		new Analyst();
 	}
+	
 
 	public Analyst() {
-		set_type("ANALYST-"+analyst_type);
+		set_type("ANALYST-"+analyst_type.name());
 		
 		this.generateKeyPair();
 		
@@ -145,7 +152,7 @@ public class Analyst extends Node {
 			/**
 			 *  Navigator Analyst
 			 */
-			case "NAV":
+			case NAV:
 				int[] start = extract_coordinates(data[0]);
 				int[] end = extract_coordinates(data[1]);
 				
@@ -157,12 +164,14 @@ public class Analyst extends Node {
 				char[] instructions = {LEFT,DOWN,DOWN,DOWN,RIGHT,RIGHT,
 						RIGHT,DOWN,DOWN,LEFT,DOWN,DOWN};
 				
+				ALERT("Instructions encoded: " + new String(instructions));
+				
 				return new String(instructions);
 				
 			/**
 			 * Object Response Coordinator
 			 */
-			case "ORC":
+			case ORC:
 				String object = data[0];
 				String size = data[1];
 				
