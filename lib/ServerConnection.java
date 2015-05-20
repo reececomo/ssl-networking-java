@@ -62,6 +62,8 @@ public class ServerConnection {
 				//create server socket
 				SSLSocketFactory sslsf = (SSLSocketFactory)SSLSocketFactory.getDefault();
 				sslSocket = (SSLSocket)sslsf.createSocket(ip, port);
+
+				sslSocket.startHandshake();
 			}
 			
 			// Create input buffer
@@ -73,17 +75,19 @@ public class ServerConnection {
 			OutputStream outputStream = sslSocket.getOutputStream();
 			writer = new PrintWriter(outputStream); 
 			
+			this.connected = true;
 			return true;
 		} catch (UnknownHostException e) {
-			System.err.println("No host found at "+ip+":"+port+".");
+			//System.err.println("No host found at "+ip+":"+port+".");
 		
 		} catch (ConnectException err) {
-			System.err.println("Connection refused "+ip+":"+port+".");
+			//System.err.println("Connection refused "+ip+":"+port+".");
 			
 		} catch (IOException e) {
-			System.err.println("Connection error: " + e);
+			//System.err.println("Connection error: " + e);
 		}
 		
+		this.connected = false;
 		return false;
 	}
 	
@@ -93,23 +97,26 @@ public class ServerConnection {
 	}
 	
 	public boolean send(String msg) {
-		boolean errors = true;
-		try {
-			writer.flush();
-			writer.write(msg + "\n");
+		if(this.connected) {
+			boolean errors = true;
+			try {
+				writer.write(msg + "\n");
+				writer.flush();
+				
+				if (writer!=null)
+					errors = writer.checkError();
+				
+			} catch (Exception Err) {
+				//System.out.println("Error: "+Err);
+				return false;
+			}
 			
-			if (writer!=null)
-				errors = writer.checkError();
+			if(errors)
+				this.close();
 			
-		} catch (Exception Err) {
-			System.out.println("WOO4"+Err);
-			errors = true;
+			return errors == false;
 		}
-		
-		if(errors)
-			this.close();
-		
-		return errors == false;
+			else return false;
 	}
 	
 	public String receive() throws IOException {
@@ -121,20 +128,20 @@ public class ServerConnection {
 					return input;
 				else {
 					this.close();
-					throw new IOException("Connection error"); //null returned
+					throw new IOException("Connection closed"); //null returned
 				}
 	
 			} catch (NullPointerException err) { }
 		}
 		
-		return null;
+		throw new IOException("Could not connect to "+ip+":"+port);
 	}
 	
 	public String request(String msg) throws IOException {
 		if(send(msg))
 			return receive();
 		else
-			throw new IOException("Could not send message");
+			throw new IOException("Could not connect to "+ip+":"+port);
 	}
 	
 	public void close() {

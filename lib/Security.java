@@ -9,6 +9,14 @@ import javax.crypto.Cipher;
 
 public class Security {
 
+	public static void declareServerCert(String cert, String pass) {
+		System.setProperty("javax.net.ssl.keyStore", cert);
+    	System.setProperty("javax.net.ssl.keyStorePassword", pass);
+	}
+	public static void declareClientCert(String cert) {
+		System.setProperty("javax.net.ssl.trustStore", cert);
+	}
+
 	protected PublicKey KeyFromString(String publicKeyString) {
 		try {
 			byte[] keyBytes = Base64.decode(publicKeyString.getBytes("utf-8"));

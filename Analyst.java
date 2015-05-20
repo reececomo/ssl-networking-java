@@ -35,8 +35,8 @@ public class Analyst extends Node {
 		set_type("ANALYST-"+analyst_type.name());
 		
 		this.generateKeyPair();
-		
-		SSLHandler.declareDualCert("SSL_Certificate","cits3002");
+
+		lib.Security.declareClientCert("cacerts.jks");
 		
 		// Connect to bank and director through abstract class
 		bank = new ServerConnection(bankIPAddress, bankPort);

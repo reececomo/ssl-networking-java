@@ -28,7 +28,7 @@ public class Collector extends Node {
 	 */
 	public Collector() throws IOException {
 		set_type("COLLECTOR");
-		SSLHandler.declareClientCert("SSL_Certificate","cits3002");
+		lib.Security.declareClientCert("cacerts.jks");
 		
 		// Connect to bank and director through abstract class
 		bank = new ServerConnection(bankIPAddress, bankPort);
@@ -83,7 +83,10 @@ public class Collector extends Node {
 				
 			} catch(IOException er) {
 				ERROR(""+er.getMessage());
-				ALERT_WITH_DELAY(colour("(Retrying...)",BLUE));
+				ALERT_WITH_DELAY(colour("Retrying...",BLUE));
+
+				if(!director.connected)
+					director.reconnect();
 			}
 		}
 	}
@@ -127,13 +130,12 @@ public class Collector extends Node {
 		String connect_director = MessageFlag.C_INIT + ":DATA";
 		String result = null;
 		
-		ALERT("Connected! (Director)");
-		
 		while (result == null)
 			try {
 				result = director.request(connect_director);
+				ALERT("Connected! (Director)");
 			} catch(IOException err) {
-				ERROR_WITH_DELAY("Could not contact director. Retrying...");
+				ERROR_WITH_DELAY("Could not contact director. "+colour("Retrying...",BLUE));
 				director.reconnect();
 			}
 		
@@ -150,45 +152,51 @@ public class Collector extends Node {
 		try {
 			director.send(MessageFlag.EXAM_REQ + ":" + dataType);
 			
-			ALERT("Sending request...");
-
 			// Read response
 			String encrypted_msg = director.receive();
 			
 			Message msg = new Message(encrypted_msg);
 			
-			if(msg.getFlag() == MessageFlag.PUB_KEY) {
-				PublicKey analyst_public_key = KeyFromString(msg.data);
-				ALERT("Public key recieved!");
-				
-				ALERT("Encrypting eCent!");
-				String encrypted_eCent = encrypt(temporary_eCent, analyst_public_key);
+			switch(msg.getFlag()){
+				case MessageFlag.PUB_KEY:
+					PublicKey analyst_public_key = KeyFromString(msg.data);
+					ALERT("Public key recieved!");
+					
+					ALERT("Encrypting eCent!");
+					String encrypted_eCent = encrypt(temporary_eCent, analyst_public_key);
 
-				// send encrypted eCent + data
-				ALERT("Sending eCent!");
-				director.send(encrypted_eCent);
+					// send encrypted eCent + data
+					ALERT("Sending eCent!");
+					director.send(encrypted_eCent);
+					
+					ALERT("Sending data!");
+					director.send(data);
+					
+					Message analysis = new Message (director.receive());
+					ALERT("Receiving response...");
+					
+					if(analysis.getFlag() == MessageFlag.ERROR)
+						throw new IOException(analysis.raw());
+					
+					ALERT("Response recieved!");
+					return analysis.data;
 				
-				ALERT("Sending data!");
-				director.send(data);
-				
-				Message analysis = new Message (director.receive());
-				ALERT("Receiving response...");
-				
-				if(analysis.getFlag() == MessageFlag.ERROR)
-					throw new IOException(analysis.raw());
-				
-				ALERT("Response recieved!");
-				return analysis.data;
-			} else
-				if(msg.getFlag() != MessageFlag.ERROR)
-					throw new IOException("Unexpected message format!");
-				else
+				case MessageFlag.ERROR:
 					throw new IOException(msg.raw());
-			
+
+				case MessageFlag.WARNING:
+					throw new IOException(colour(msg.raw(),PURPLE));
+
+				default:
+					throw new IOException("Unexpected message format!");
+
+			}
+
 		} catch(IOException err) {
 			// Error in sending
 			this.eCentWallet.add( temporary_eCent );
 			throw new IOException(err.getMessage());
 		}
+		
 	}
 }

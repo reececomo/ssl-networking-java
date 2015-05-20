@@ -38,7 +38,7 @@ public class Director extends Node {
 		// Option to give the port as an argument
 		if (args.length == 1)
 			try {
-				newPort = Integer.valueOf(args[0], 10);
+				newPort = Integer.valueOf(args[0]);
 			} catch (NumberFormatException er) {
 				newPort = PORT;
 			}
@@ -57,7 +57,7 @@ public class Director extends Node {
 														// busy)
 
 		// SSL Certificate
-		SSLHandler.declareDualCert("SSL_Certificate", "cits3002");
+		lib.Security.declareServerCert("keystore.jks", "cits3002");
 		ExecutorService executorService = Executors.newFixedThreadPool(100);
 
 		ANNOUNCE("Starting director server");
@@ -215,8 +215,8 @@ public class Director extends Node {
 						}
 
 						if (!success) {
-							client.send("Error: No analysts currently available!");
-							ERROR("Error: No analysts currently available!");
+							client.send("Warning: No analysts currently available!");
+							WARN("Warning: No analysts currently available!");
 						} 
 
 						break;
@@ -227,7 +227,12 @@ public class Director extends Node {
 
 					}
 					
-				}catch(IOException err) {
+				} catch(SSLException err) {
+
+					ALERT("Failed connection: "+colour(err.getMessage(),RED));
+					client.close();
+
+				} catch(IOException err) {
 					
 					/*
 					 * Make sure to remove the analyst

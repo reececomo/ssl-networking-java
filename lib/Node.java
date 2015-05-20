@@ -51,7 +51,7 @@ public class Node extends Security {
 	public static final String CYAN = "\u001B[36m";
 	public static final String WHITE = "\u001B[37m";
 
-	private final static int DEFAULT_PAUSE_LENGTH = 2500; // 2500 milliseconds
+	private final static int DEFAULT_PAUSE_LENGTH = 5000; // 2500 milliseconds
 	private final static int SHORT_PAUSE_LENGTH = 200; // 1.5 second
 	private String STATE = "IDLE";
 	private String NODE_TYPE = null;
@@ -148,6 +148,14 @@ public class Node extends Security {
 	public void ALERT (String message) {
 		try {
 			System.out.println(" >> " + message);
+			Thread.sleep( SHORT_PAUSE_LENGTH );
+			
+		} catch (Exception err) { err.printStackTrace(); }
+	}
+
+	public void WARN (String message) {
+		try {
+			System.out.println(colour(" >> " + message,PURPLE));
 			Thread.sleep( SHORT_PAUSE_LENGTH );
 			
 		} catch (Exception err) { err.printStackTrace(); }

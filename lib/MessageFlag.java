@@ -13,5 +13,6 @@ public class MessageFlag {
 	public static final String EXAM_REQ = "DOIT";	// analysis request
 	public static final String PUB_KEY = "PUBK";
 	public static final String ERROR = "Error";
+	public static final String WARNING = "Warning";
 	public static final String NONE = "NONE";
 }

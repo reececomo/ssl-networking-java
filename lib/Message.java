@@ -10,7 +10,7 @@ package lib;
  
 public class Message {
 	
-	public enum Flag { NONE, INIC, INIA, DOIT, WIT, DEP, PUBK, Error };
+	public enum Flag { NONE, INIC, INIA, DOIT, WIT, DEP, PUBK, Error, Warning };
 	private Flag flag; 			// flag cannot be changed
 	public String data; 			// contents can be referenced Message.content
     
@@ -22,8 +22,13 @@ public class Message {
 			  this.data = parts[1];
 	      
 	  } catch (Exception e) {
+	  	if(rawMessage!=null){
 		  this.data = rawMessage;
 		  this.flag = Flag.NONE;
+		}else {
+			data = null;
+			flag = Flag.Error;
+		}
 	  }
   }
   

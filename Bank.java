@@ -41,7 +41,7 @@ public class Bank extends Node {
 
 	public Bank() throws IOException {
 		set_type("BANK");
-		SSLHandler.declareServerCert("SSL_Certificate", "cits3002");
+		lib.Security.declareServerCert("keystore.jks", "cits3002");
 
 		bankStore = new ECentWallet(ECENTWALLET_FILE);
 

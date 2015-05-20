@@ -20,6 +20,11 @@
 #####0.3 Low
 - ***Split code into subclasses*** - *WHERE NECESSARY* - For readability, encapsulation, modularity, etc.
 
+- http://docs.oracle.com/javaee/5/tutorial/doc/bnbxw.html
+> Generate the keystore (keypair)
+> generate the certificatae
+- turn cert into truststore (and distribute to clients)
+
 ##1 - Core Components
 ###1.0 Description
 The project consists of four root components:
