@@ -99,7 +99,7 @@ public class Bank extends Node {
 						 * BANK_WIT => WIT
 						 */
 						case WIT:
-							ALERT("Collector connected  -->  Withdrawing money");
+							ANNOUNCE(colour("Collector",PURPLE)+" connected  -->  Withdrawing money");
 							
 							int amount = Integer.parseInt(msg.data);
 							ALERT("Generating " + amount + " eCents!");
@@ -107,7 +107,7 @@ public class Bank extends Node {
 							for (int i = 0; i < amount; i++)
 								client.send(generateEcent());
 		
-							ALERT("Money sent");
+							SUCCESS("Money sent");
 							break;
 							
 							
@@ -116,7 +116,7 @@ public class Bank extends Node {
 						 * BANK_DEP => DEP
 						 */
 						case DEP:
-							ALERT("Analyst connected  -->  Depositing money");
+							ANNOUNCE(colour("Analyst",PURPLE)+" connected  -->  Depositing money");
 		
 							// Check if eCent is in valid eCent set
 							if (bankStore.contains(msg.data)) {
@@ -132,7 +132,6 @@ public class Bank extends Node {
 								client.send("INVALID");
 								
 							}
-							
 							break;
 							
 						default:
@@ -141,9 +140,9 @@ public class Bank extends Node {
 		
 					}
 	
-					ALERT("Request finished!");
+					ALERT("Request finished!\n");
 				} catch (IOException err) {
-					ALERT("Closing connection + " + client.connected + err);
+					ALERT("Closing connection: " + colour(err.getMessage(),RED));
 					client.close();
 				}
 			}

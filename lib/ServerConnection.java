@@ -29,8 +29,11 @@ public class ServerConnection {
 	private PrintWriter writer;
 	private BufferedReader reader;
 	private SSLSocket sslSocket = null;
+
+	public boolean waiting = true;
 	public boolean busy = false;
 	public boolean connected = false;
+
 	public String public_key;
 	private String ip;
 	private int port;
@@ -117,6 +120,14 @@ public class ServerConnection {
 			return errors == false;
 		}
 			else return false;
+	}
+
+	public boolean isConnected() {
+		if(this.connected) {
+			return writer.checkError() == false;
+		}
+
+		return false;
 	}
 	
 	public String receive() throws IOException {

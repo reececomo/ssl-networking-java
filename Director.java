@@ -4,6 +4,7 @@ import java.util.concurrent.Executors;
 import java.util.*;
 
 import javax.net.ssl.*;
+import java.net.SocketException;
 
 import lib.*;
 import lib.ServerConnection.NodeType;
@@ -27,7 +28,6 @@ public class Director extends Node {
 	private HashMap<String, HashSet<ServerConnection>> analystPool; // explained
 																	// in
 																	// constuctor
-	private HashSet<ServerConnection> busyAnalyst; // as above
 
 	private boolean socketIsListening = true;
 
@@ -51,10 +51,6 @@ public class Director extends Node {
 		set_type("DIRECTOR");
 
 		analystPool = new HashMap<String, HashSet<ServerConnection>>(); // hashmap
-		busyAnalyst = new HashSet<ServerConnection>(); // busy analysts address
-														// pool (all analysts in
-														// here are currently
-														// busy)
 
 		// SSL Certificate
 		lib.Security.declareServerCert("keystore.jks", "cits3002");
@@ -99,17 +95,14 @@ public class Director extends Node {
 	public class DirectorClient implements Runnable {
 
 		protected ServerConnection client;
+		protected ServerConnection selected_analyst;
 
 		public DirectorClient(SSLSocket socket) {
 			client = new ServerConnection(socket);
 		}
 
 		public void run() {
-			
-			ServerConnection currentAnalyst = null;
-			HashSet<ServerConnection> currentAnalystPool = null;
-			
-			while (client.connected && !client.busy) {
+			while (client.connected && client.waiting) {
 				try {
 					Message msg = new Message(client.receive());
 					String[] msg_data = msg.getData();
@@ -136,11 +129,10 @@ public class Director extends Node {
 					 * A_INIT => INIA
 					 */
 					case INIA:
-						if (!analystPool.containsKey(msg_data[DATA_TYPE])) {
+						ALERT(colour("Analyst",PURPLE) + " connected... (" + msg_data[DATA_TYPE] + ")");
+						client.nodeType = NodeType.ANALYST;
 
-							ALERT(colour("Analyst",PURPLE) + " connected... (" + msg_data[DATA_TYPE] + ")");
-							client.nodeType = NodeType.ANALYST;
-							
+						if (!analystPool.containsKey(msg_data[DATA_TYPE])) {
 							HashSet<ServerConnection> newpool = new HashSet<ServerConnection>();
 							newpool.add(client);
 							analystPool.put(msg_data[DATA_TYPE], newpool);
@@ -152,75 +144,94 @@ public class Director extends Node {
 						
 						client.public_key = msg_data[PUBLIC_KEY];
 						client.send("REGISTERED");
-						client.busy = true;
+						client.waiting = false;
 
 						break;
 
 					/*
-					 * EXAM_REQ:
+					 * DOIT:
 					 * Data analysis request
-					 * EXAM_REQ => DOIT
+					 * (The main transaction between Cllctr+Anlsyt)
 					 */
 					case DOIT:
-						ALERT("Collector sending request...");
-						ALERT("Data Analysis request recieved");
+						ANNOUNCE("New collector transaction request...");
+						ALERT("Analysis request recieved!");
+
+						// Init success
 						boolean success = false;
+						String encryptedECent = null,
+							data = null,
+							request = null,
+							result = null;
 
 						// Get list of analysts for this data type
-						currentAnalystPool = analystPool.get(msg_data[DATA_TYPE]);
-						
-						// If there are some analysts
-						if (currentAnalystPool != null) {
-							
-							// Try some analyst until you find one that's free and connected
-							for (ServerConnection analyst : currentAnalystPool) {
-								currentAnalyst = analyst;
-								
-								if (!busyAnalyst.contains(analyst)) {
-									// Reserve the analyst
-									busyAnalyst.add(analyst);
-									
-									ALERT("Analyst found! Sending Collector the analyst public key...");
-									String eCent = client.request(MessageFlag.PUB_KEY + ":" + analyst.public_key);
-									String data = null,result = null;
+						HashSet<ServerConnection> currentPool = analystPool.get(msg_data[DATA_TYPE]);
+						if (currentPool != null) {
 
+							// Try some analyst until you find one that's free and connected
+							for (ServerConnection analyst : currentPool) {
+								
+								if (!analyst.busy && analyst.connected) {
+									analyst.busy = true;
+
+									ALERT("Analyst found!");
+									ALERT("Sending " + colour("Collector",PURPLE) + " the public encryption key!");
+
+									// Send the analysts public key
+									request = MessageFlag.PUB_KEY + ":" + analyst.public_key;
+									client.send(request);
+
+									// Recieve an encrypted eCent
+									encryptedECent = client.receive();
 									data = client.receive();
+
+									ALERT("Recieved eCent and data! Forwarding to analyst.");
 										
-									// Send eCent and data, and request result
-									if(analyst.send(MessageFlag.EXAM_REQ + ":" + eCent)
-											&& analyst.send(data))
-										result = analyst.receive();
-									else {
-										if(currentAnalyst!=null) {
-											if(busyAnalyst.contains(currentAnalyst))
-												busyAnalyst.remove(currentAnalyst);
-											
-											if(currentAnalystPool!=null && currentAnalystPool.contains(currentAnalyst))
-												currentAnalystPool.remove(currentAnalyst);
+									// Prepare encrypted eCent with an analysis request
+									request = MessageFlag.EXAM_REQ + ":" + encryptedECent;
+
+									// Send request and then send data
+									if(analyst.send(request) && analyst.send(data)) {
+										ALERT("Awaiting result...");
+
+										try {
+											result = analyst.receive();
+											ALERT("Analysis received!");
+
+										} catch (IOException disconnected) {
+											currentPool.remove(analyst);
+											break;
 										}
+									} else {
+										analyst.busy = false;
 										break;
 									}
-									
-									SUCCESS("Analysis received! Forwarding to Collector.");
 
-									client.send(result);
-									
-									ALERT("Returning result to Collector");
-									success = true;
+									if(client.isConnected() && client.send(result)) {
+										SUCCESS("Result sent to collector!");
+										success = true;
+									} else
+										throw new IOException("Collector disconnected!");
 										
-									busyAnalyst.remove(analyst);
+									analyst.busy = false;
 									break;
 								}
 							}
 						}
 
 						if (!success) {
-							client.send("Warning: No analysts currently available!");
-							WARN("Warning: No analysts currently available!");
+							String warn = "Warning: No analysts currently available!";
+							client.send(warn);
+							WARN(warn);
 						} 
 
 						break;
 
+
+					/*
+					 * No recognised message flag
+					 *	handle error
+					 */
 					default:
 						ERROR("Unrecognised message: " + msg.raw());
 						break;
@@ -228,9 +239,15 @@ public class Director extends Node {
 					}
 					
 				} catch(SSLException err) {
+					String error_message = err.getMessage();
+					ALERT("Failed connection: "+colour(error_message,RED));
 
-					ALERT("Failed connection: "+colour(err.getMessage(),RED));
+					// Close the client connection
 					client.close();
+
+					// Make sure an analyst is not busy
+					if(selected_analyst!=null)
+						selected_analyst.busy = false;
 
 				} catch(IOException err) {
 					

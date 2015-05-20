@@ -51,6 +51,7 @@ public class Collector extends Node {
 
 		ANNOUNCE("Requesting navigation analysis...");
 		while(true) {
+			ALERT_WITH_DELAY("Delaying...");
 			try {
 				String movementString = analyse_data("NAV", coordinates); // e.g. "01001203132321"
 				
