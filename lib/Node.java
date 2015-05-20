@@ -36,6 +36,7 @@ public class Node extends Security {
 	protected final static char RIGHT = '1';
 	protected final static char UP = '2';
 	protected final static char DOWN = '3';
+	protected final static String[] direction = {"LEFT","RIGHT","UP","DOWN"};
 
 	protected final static int x = 0;
 	protected final static int y = 1;

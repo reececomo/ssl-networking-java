@@ -49,46 +49,39 @@ public class Collector extends Node {
 		int[] dest = {12,12};
 		String coordinates = stringCoords(xpos,ypos,dest[x],dest[y]); // "0,0:12:12"
 
-		ANNOUNCE("Requesting navigation analysis...");
 		while(true) {
-			ALERT_WITH_DELAY("Delaying...");
-			try {
-				String movementString = analyse_data("NAV", coordinates); // e.g. "01001203132321"
-				
-				char[] movements = movementString.toCharArray(); // e.g. [0,1,0,0,1,2,0,3,1,3,2,3,2,1]
-				
-				ALERT("Analysis recieved.");
-				
-				if (movements.length > 0)
-					ANNOUNCE("MOVING");
-				
-				for(char move : movements) {
-					// Do something
-					// simulate movement?
-					
-					// sense surroundings?
-					//String action = sensor();
-					//If action is lazer, make lazer sound
-					//ALERT(action);
-					
-					// if hit object on next movement run something
-					// analyse_data("ORC","Unicorn:SMALL");
-					
-					switch(move) {
-						case LEFT: this.xpos--; break;
-						case RIGHT:this.xpos++; break;
-						case DOWN: this.ypos--; break;
-						case UP: this.ypos++; break;
-					}
-				}
-				
-			} catch(IOException er) {
-				ERROR(""+er.getMessage());
-				ALERT_WITH_DELAY(colour("Retrying...",BLUE));
+			ANNOUNCE("Requesting navigation analysis...");
+			char[] movements = analyse_data("NAV", coordinates).toCharArray(); // e.g. [0,1,0,0,1,2,0,3,1,3,2,3,2,1]
+			
+			ALERT("Analysis recieved.");
+			
+			if (movements.length > 0)
+				ANNOUNCE("Moving");
+			
+			for(char move : movements) {
+				int dir = Character.getNumericValue(move);
+				ALERT(colour("Moving "+direction[dir], BLUE));
 
-				if(!director.connected)
-					director.reconnect();
+				// Do something
+				// simulate movement?
+				
+				// sense surroundings?
+				//String action = sensor();
+				//If action is lazer, make lazer sound
+				//ALERT(action);
+				
+				// if hit object on next movement run something
+				// analyse_data("ORC","Unicorn:SMALL");
+				
+				switch(move) {
+					case LEFT: this.xpos--; break;
+					case RIGHT:this.xpos++; break;
+					case DOWN: this.ypos--; break;
+					case UP: this.ypos++; break;
+				}
 			}
+
+			SUCCESS("Finished all moves, request more...");
 		}
 	}
 
@@ -143,61 +136,70 @@ public class Collector extends Node {
         return result != null;
 	}
 
-	private String analyse_data(String dataType, String data) throws IOException {
-		
-		if (eCentWallet.isEmpty())
-			buyMoney(100);
-		
-		String temporary_eCent = eCentWallet.remove();
+	private String analyse_data(String dataType, String data) {
+		while(true) {
+			if (eCentWallet.isEmpty())
+				buyMoney(100);
+			
+			String temporary_eCent = eCentWallet.remove();
 
-		try {
-			director.send(MessageFlag.EXAM_REQ + ":" + dataType);
-			
-			// Read response
-			String encrypted_msg = director.receive();
-			
-			Message msg = new Message(encrypted_msg);
-			
-			switch(msg.getFlag()){
-				case MessageFlag.PUB_KEY:
-					PublicKey analyst_public_key = KeyFromString(msg.data);
-					ALERT("Public key recieved!");
-					
-					ALERT("Encrypting eCent!");
-					String encrypted_eCent = encrypt(temporary_eCent, analyst_public_key);
-
-					// send encrypted eCent + data
-					ALERT("Sending eCent!");
-					director.send(encrypted_eCent);
-					
-					ALERT("Sending data!");
-					director.send(data);
-					
-					Message analysis = new Message (director.receive());
-					ALERT("Receiving response...");
-					
-					if(analysis.getFlag() == MessageFlag.ERROR)
-						throw new IOException(analysis.raw());
-					
-					ALERT("Response recieved!");
-					return analysis.data;
+			try {
+				director.send(MessageFlag.EXAM_REQ + ":" + dataType);
 				
-				case MessageFlag.ERROR:
-					throw new IOException(msg.raw());
+				// Read response
+				String encrypted_msg = director.receive();
+				
+				Message msg = new Message(encrypted_msg);
+				
+				switch(msg.getFlag()){
+					case MessageFlag.PUB_KEY:
+						PublicKey analyst_public_key = KeyFromString(msg.data);
+						ALERT("Public key recieved!");
+						
+						ALERT("Encrypting eCent!");
+						String encrypted_eCent = encrypt(temporary_eCent, analyst_public_key);
 
-				case MessageFlag.WARNING:
-					throw new IOException(colour(msg.raw(),PURPLE));
+						// send encrypted eCent + data
+						ALERT("Sending eCent!");
+						director.send(encrypted_eCent);
+						
+						ALERT("Sending data!");
+						director.send(data);
+						
+						Message analysis = new Message (director.receive());
+						String flag = analysis.getFlag();
+						ALERT("Receiving response...");
+						
+						if(flag == MessageFlag.ERROR || flag == MessageFlag.WARNING)
+							throw new IOException(analysis.raw());
+						else
+							ALERT("Response recieved!");
 
-				default:
-					throw new IOException("Unexpected message format!");
+						return analysis.data;
+					
+					case MessageFlag.ERROR:
+						throw new IOException(msg.raw());
 
+					case MessageFlag.WARNING:
+						throw new IOException(colour(msg.raw(),PURPLE));
+
+					default:
+						throw new NullPointerException("Unexpected message format!");
+
+				}
+
+			} catch(IOException err) {
+				// Error in sending
+				this.eCentWallet.add( temporary_eCent );
+
+				ALERT("Could not get data: "+err.getMessage());
+				ALERT_WITH_DELAY(colour("Retrying...",PURPLE));
+
+				if(!director.connected)
+					director.reconnect();
 			}
-
-		} catch(IOException err) {
-			// Error in sending
-			this.eCentWallet.add( temporary_eCent );
-			throw new IOException(err.getMessage());
 		}
 		
 	}
+
 }

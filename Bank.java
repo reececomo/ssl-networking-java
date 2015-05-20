@@ -152,6 +152,9 @@ public class Bank extends Node {
 	private static String generateEcent() {
 		String eCent = getSHA256Hash(Integer.toString(sequence++));
 
+
+		System.out.println("    ..."+eCent.substring(0,20));
+
 		bankStore.add(eCent); // add ecent to valid set
 		
 		return eCent;
