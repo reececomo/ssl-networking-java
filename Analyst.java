@@ -12,7 +12,7 @@ import lib.*;
 public class Analyst extends Node {
 	
 	// The persistent connections
-	private ServerConnection bank, director;
+	private SocketConnection bank, director;
 
 	// Analyst subtypes (add here)
 	private enum AnalystType { NAV, ORC }
@@ -26,7 +26,7 @@ public class Analyst extends Node {
 	 * Main
 	 */
 	public static void main(String[] args) {
-		load_ip_addresses(args);
+		load_parameters(args);
 		new Analyst();
 	}
 	
@@ -39,22 +39,29 @@ public class Analyst extends Node {
 		lib.Security.declareClientCert("cacerts.jks");
 		
 		// Connect to bank and director through abstract class
-		bank = new ServerConnection(bankIPAddress, bankPort);
-		director = new ServerConnection(directorIPAddress, dirPort);
+		bank = new SocketConnection(bankIPAddress, bankPort);
+		director = new SocketConnection(directorIPAddress, dirPort);
 		
-		//while(bank.connected && director.connected) {
-			if(registerWithDirector()){
+		// Maintain a connection with the director
+		director.connect();
+
+		while(true) {
+			if(registerWithDirector())
+			{
 				ANNOUNCE("Registered!");
 				this.run();
+			} else {
+				ALERT_WITH_DELAY("Could not connect to Director...");
+				ALERT(colour("Retrying...",BLUE));
+				director.reconnect();
 			}
-			else
-				ALERT_WITH_DELAY("Not connected to Director... retrying...");
-		//}
+		}
 		
 	}
 
 	// Send data type to Director
 	private boolean registerWithDirector() {
+
 		ANNOUNCE("Registering availability with Director");
 		String register_message = MessageFlag.A_INIT + ":" + this.analyst_type + ";" + StringFromKey(this.public_key);
 		String response;
@@ -68,19 +75,31 @@ public class Analyst extends Node {
 	}
 	
 	private boolean depositMoney(String eCent) {
-		ALERT("Sending eCent to the bank");
-		
-		String deposit_request = MessageFlag.BANK_DEP + ":" + eCent;
+		int attempt = 0;
 		String result = null;
-		
-		try {
-			result = bank.request(deposit_request);
-		} catch (IOException err) {
-			ALERT_WITH_DELAY("Error depositing to bank.");
-			return false;
+		String deposit_request = MessageFlag.BANK_DEP + ":" + eCent;
+
+		bank.connect();
+
+		while(attempt < 3) {
+			ALERT("Sending eCent to the bank");
+			try {
+				result = bank.request(deposit_request);
+				break;
+			} catch (IOException err) {
+				ALERT_WITH_DELAY("Connection error! Retrying...");
+				bank.reconnect();
+			}
+
+			attempt++;
 		}
-				
-		return result.equals("VALID");
+
+		bank.close();
+
+		if(result!=null)
+			return result.equals("VALID");
+
+		return false;
 	}
 	
 	private void run() {
@@ -115,7 +134,7 @@ public class Analyst extends Node {
 							
 						} else {
 							director.send("Error: Could not deposit eCent!");
-							ALERT("Error: Could not deposit eCent!");
+							ERROR("Error: Could not deposit eCent!\n");
 						}
 		
 					}

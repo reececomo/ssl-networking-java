@@ -1,7 +1,6 @@
 import java.io.*;
 
 import javax.net.ssl.*;
-
 import java.security.*;
 
 import lib.*;
@@ -9,37 +8,27 @@ import lib.*;
 /**
  * Bank Class For handling Ecent generation, checking and depositing
  * 
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander
- *         Popoff-Asotoff
- * @version 5.9.15
+ * @author Reece Notargiacomo, Alexander Popoff-Asotoff,
+ *				Jesse Fletcher and Caleb Fetzer
  */
 
 public class Bank extends Node {
 
-	private static int bankPort = 9999;
-	private static int sequence = 0;
+	private static int port = 9999;
 	private static SSLServerSocket sslserversocket = null;
 
 	private static ECentWallet bankStore;
-	private final static String ECENTWALLET_FILE = "bank.wallet";
 
 	/**
 	 * Bank
 	 */
-
 	public static void main(String[] args) throws IOException {
-		// Option to give the port as an argument
-		if (args.length == 1)
-			try {
-				bankPort = Integer.valueOf(args[0]);
-			} catch (NumberFormatException er) {
-				bankPort = 9999;
-			}
-
-		new Bank();
+		ECENTWALLET_FILE = "bank.wallet";
+		load_parameters(args);
+		new Bank( port );
 	}
 
-	public Bank() throws IOException {
+	public Bank(int portNo) throws IOException {
 		set_type("BANK");
 		lib.Security.declareServerCert("keystore.jks", "cits3002");
 
@@ -47,45 +36,47 @@ public class Bank extends Node {
 
 		ANNOUNCE("Starting bank server");
 
-		if (this.startServer()) {
-			ANNOUNCE("Bank started on " + getIPAddress() + ":" + bankPort);
+		if (startServer(portNo)) {
+			ANNOUNCE("Bank started on " + getIPAddress() + ":" + portNo);
+
 			while (true) {
+				// Accept new connections
 				SSLSocket sslsocket = null;
 				try {
 					sslsocket = (SSLSocket) sslserversocket.accept();
-					ALERT("Accepting a connection!");
+					ALERT("New connection!");
+					new Thread(new clientConnection(sslsocket)).start();
 
 				} catch (IOException e) {
 					ERROR("Error connecting client");
 				}
-
-				new Thread(new bankConnection(sslsocket)).start(); // start new
-																	// thread
 			}
+
 		}
 	}
 
-	private boolean startServer() {
+	private boolean startServer(int portNo) {
 		try {
-			// Use the SSLSSFactory to create a SSLServerSocket to create a
-			// SSLSocket
-			SSLServerSocketFactory sslserversocketfactory = (SSLServerSocketFactory) SSLServerSocketFactory
-					.getDefault();
-			sslserversocket = (SSLServerSocket) sslserversocketfactory
-					.createServerSocket(bankPort);
+			// Create a new server
+			SSLServerSocketFactory sslssf = (SSLServerSocketFactory) SSLServerSocketFactory .getDefault();
+			sslserversocket = (SSLServerSocket) sslssf.createServerSocket( portNo );
+
+			// No errors?
 			return true;
+
 		} catch (IOException e) {
-			ALERT("Could not create server on port " + bankPort);
+			ALERT("Could not create server on port " + portNo);
 		}
+
 		return false;
 	}
 
-	private class bankConnection implements Runnable {
+	private class clientConnection implements Runnable {
 
-		protected ServerConnection client;
+		protected SocketConnection client;
 
-		public bankConnection(SSLSocket socket) {
-			client = new ServerConnection(socket);
+		public clientConnection(SSLSocket socket) {
+			client = new SocketConnection(socket);
 		}
 
 		public void run() {
@@ -150,19 +141,19 @@ public class Bank extends Node {
 	}
 
 	private static String generateEcent() {
-		String eCent = getSHA256Hash(Integer.toString(sequence++));
+		String eCent = null;
 
+		while(eCent == null || bankStore.contains(eCent))
+			eCent = getSHA256Hash(Integer.toString(bankStore.getBalance()));
 
 		System.out.println("    ..."+eCent.substring(0,20));
-
-		bankStore.add(eCent); // add ecent to valid set
+		bankStore.add(eCent); // add ecent to vault
 		
 		return eCent;
 	}
 
 	private static String getSHA256Hash(String passwordToHash) {
 
-		String generatedPassword = null;
 		try {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			String salt = getSalt();
@@ -170,14 +161,13 @@ public class Bank extends Node {
 			byte[] bytes = md.digest(passwordToHash.getBytes());
 			StringBuilder sb = new StringBuilder();
 			for (int i = 0; i < bytes.length; i++) {
-				sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16)
-						.substring(1));
+				sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
 			}
-			generatedPassword = sb.toString();
+			return sb.toString();
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
+			return null;
 		}
-		return generatedPassword; // return ecent
 	}
 
 	private static String getSalt() throws NoSuchAlgorithmException {

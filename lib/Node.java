@@ -22,26 +22,34 @@ import java.net.UnknownHostException;
 public class Node extends Security {
 	
 	// Default ports and IP Addresses
+	protected static int port = 0;
 	protected static int dirPort = 9998;
 	protected static int bankPort = 9999;
 	protected static String directorIPAddress = "localhost";
 	protected static String bankIPAddress = "localhost";
+	protected static String ECENTWALLET_FILE = "ecent.wallet";
 	
 	// Default Constants
 	protected final static int DATA = 0;
 	protected final static int ECENT = 1;
 	protected final static int PKEY = 1;
+	private final static int DEFAULT_PAUSE_LENGTH = 2500; // 2.5 seconds
+	private final static int SHORT_PAUSE_LENGTH = 200; // 0.2 seconds
+	private String NODE_TYPE = null;
 	
+	// For directional analysts
 	protected final static char LEFT = '0';
 	protected final static char RIGHT = '1';
 	protected final static char UP = '2';
 	protected final static char DOWN = '3';
 	protected final static String[] direction = {"LEFT","RIGHT","UP","DOWN"};
 
+	// For accessing array coordinates
 	protected final static int x = 0;
 	protected final static int y = 1;
 	
 	// Colours
+	public static boolean show_colours = true;
 	public static final String RESET = "\u001B[0m";
 	public static final String BLACK = "\u001B[30m";
 	public static final String RED = "\u001B[31m";
@@ -51,11 +59,59 @@ public class Node extends Security {
 	public static final String PURPLE = "\u001B[35m";
 	public static final String CYAN = "\u001B[36m";
 	public static final String WHITE = "\u001B[37m";
+	
+	/*
+	 *	Load Parameters!
+	 */
+	public static int load_parameters(String[] args) {
+		
+		int params_given = 0;
 
-	private final static int DEFAULT_PAUSE_LENGTH = 5000; // 2500 milliseconds
-	private final static int SHORT_PAUSE_LENGTH = 200; // 1.5 second
-	private String STATE = "IDLE";
-	private String NODE_TYPE = null;
+		// If IP Addresses given
+		for(String argument : args) {
+			String[] arg = argument.split("=");
+			
+			if(arg[0].equals("-bank"))
+			{
+				String[] bankFullAddress = arg[1].split(":");
+				bankIPAddress = bankFullAddress[0];
+				if (bankFullAddress.length == 2)
+					bankPort = Integer.parseInt(bankFullAddress[1]);
+				
+				params_given++;
+			}
+			
+			if (arg[0].equals("-dir"))
+			{
+				String[] dirFullAddress = arg[1].split(":");
+				directorIPAddress = dirFullAddress[0];
+				if (dirFullAddress.length == 2)
+					dirPort = Integer.parseInt(dirFullAddress[1]);
+				
+				params_given++;
+			}
+
+			if (arg[0].equals("-port"))
+			{
+				port = Integer.parseInt(arg[1]);
+				params_given++;
+			}
+
+			if (arg[0].equals("-wallet"))
+			{
+				ECENTWALLET_FILE = arg[1];
+				params_given++;
+			}
+
+			if (arg[0].equals("-nocolour"))
+			{
+				show_colours = false;
+				params_given++;
+			}
+		}
+		
+		return params_given;
+	}
 	
 	public void set_type (String node_type) {
 		this.NODE_TYPE = node_type;
@@ -87,44 +143,6 @@ public class Node extends Security {
 		return ""+x1+","+y1+":"+x2+","+y2;
 	}
 	
-	public String colour(String text, String COLOUR) {
-		return new String(COLOUR + text + RESET);
-	}
-	
-	public static int load_ip_addresses(String[] args) {
-		
-		int params_given = 0;
-
-		// If IP Addresses given
-		for(String argument : args) {
-			String[] arg = argument.split("=");
-			
-			if( arg.length == 2 ) {
-				if(arg[0].equals("-bank"))
-				{
-					String[] bankFullAddress = arg[1].split(":");
-					bankIPAddress = bankFullAddress[0];
-					if (bankFullAddress.length == 2)
-						bankPort = Integer.parseInt(bankFullAddress[1]);
-					
-					params_given++;
-				}
-				
-				if (arg[0].equals("-dir"))
-				{
-					String[] dirFullAddress = arg[1].split(":");
-					directorIPAddress = dirFullAddress[0];
-					if (dirFullAddress.length == 2)
-						dirPort = Integer.parseInt(dirFullAddress[1]);
-					
-					params_given++;
-				}
-			}
-		}
-		
-		return params_given;
-	}
-	
 	public void saveToFile(String fileName,
 	  BigInteger mod, BigInteger exp) throws IOException {
 	  ObjectOutputStream oout = new ObjectOutputStream( new BufferedOutputStream(new FileOutputStream(fileName)));
@@ -142,8 +160,7 @@ public class Node extends Security {
 	// Alert makes one line
 	// Alert with delay makes one line for however many seconds
 	public void ANNOUNCE (String state) {
-		this.STATE = state;
-		System.out.println("\n<< " + colour(this.NODE_TYPE,BLUE) + ": " + this.STATE + " >>\n");
+		System.out.println("\n<< " + colour(this.NODE_TYPE,BLUE) + ": " + state + " >>\n");
 	}
 	
 	public void ALERT (String message) {
@@ -178,6 +195,11 @@ public class Node extends Security {
 		} catch (Exception err) { err.printStackTrace(); }
 	}
 	
+	public void QUICK_SUCCESS(String message) {
+		System.out.println(colour(" >> " + message,GREEN));
+	}
+	
+	
 	public void ERROR_WITH_DELAY(String message) {
 		try {
 			System.out.println(colour(" >> " + message,RED));
@@ -192,5 +214,13 @@ public class Node extends Security {
 			Thread.sleep( DEFAULT_PAUSE_LENGTH );
 			
 		} catch (Exception err) { err.printStackTrace(); }
+	}
+	
+	public static String colour(String text, String COLOUR) {
+		if (show_colours)
+			return new String(COLOUR + text + RESET);
+
+		// Don't show colours
+		return text;
 	}
 }

@@ -1,11 +1,11 @@
 package lib;
 
 /**
- *  A standard message class that auto-sets the message on
+ *  A standard message format that auto-sets the message on
  *  instantiation, as well as providing a getter for the "flag"
  *  and analyst data properties.
  *  
- *  @author Alexander Popoff-Asotoff, Reece Notargiacomo, Jesse Fletcher, Caleb Fetzer
+ *  @author Reece Notargiacomo, Alexander Popoff-Asotoff
  */
  
 public class Message {

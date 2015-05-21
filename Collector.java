@@ -5,21 +5,19 @@ import lib.*;
 
 /**
  * Collector Class
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
- * @version 5.9.15
+ * @author Reece Notargiacomo, Alexander Popoff-Asotoff and Jesse Fletcher
  */
 
 public class Collector extends Node {
 
-	private ECentWallet eCentWallet; // file for holding ecents
-	private final static String ECENTWALLET_FILE = "collector.wallet";
+	private ECentWallet eCentWallet;
 	
-	private ServerConnection bank, director;
-
+	private SocketConnection bank, director;
 	private int xpos = 0, ypos = 0;
 	
 	public static void main(String[] args) throws IOException {
-		load_ip_addresses(args);
+		ECENTWALLET_FILE = "collector.wallet";
+		load_parameters(args);
 		new Collector();
 	}
 
@@ -31,18 +29,14 @@ public class Collector extends Node {
 		lib.Security.declareClientCert("cacerts.jks");
 		
 		// Connect to bank and director through abstract class
-		bank = new ServerConnection(bankIPAddress, bankPort);
-		director = new ServerConnection(directorIPAddress, dirPort);
+		bank = new SocketConnection(bankIPAddress, bankPort);
+		director = new SocketConnection(directorIPAddress, dirPort);
 		
 		// Initiate eCentWallet
 		eCentWallet = new ECentWallet( ECENTWALLET_FILE );
-		
 		ANNOUNCE(eCentWallet.displayBalance());
 
-		if(bank.connected && initiateWithDirector())
-			this.runCollector();
-		else
-			ALERT("Error: "+bank.connected);
+		this.runCollector();
 	}
 	
 	private void runCollector() {
@@ -91,55 +85,51 @@ public class Collector extends Node {
 
 
 	private void buyMoney(int amount){
+
+		// Connect to bank
+		bank.connect();
 		
-		ALERT("Sending Money Withdrawl Request..");
+		ALERT("Sending money withdrawl request..");
 		String withdrawl_request = MessageFlag.BANK_WIT + ":" + amount;
 		boolean sent = false;
 		
 		while(!sent)
-			try {
-				sent = bank.send(withdrawl_request);
-			} catch (Exception err) {
-				ERROR_WITH_DELAY("Could not send request. Retrying...");
+			if(sent = bank.send(withdrawl_request))
+				ALERT("Sent! (Awaiting response)");
+			else {
+				ERROR_WITH_DELAY("Could not contact bank. Retrying... "+sent);
+				bank.reconnect();
 			}
 		
 		String eCent;
 		String[] eCentBuffer = new String[amount];
 		int index = 0;
 		
-		while(index < amount)
+		while(index < amount) {
 			try {
 				eCent = bank.receive();
+				QUICK_SUCCESS("..."+eCent.substring(0,20));
+
 				eCentBuffer[index++] = eCent;
 			} catch (IOException err) {
-				ERROR_WITH_DELAY("Connection interrupted. Retrying...");
-				bank.reconnect();
+				ERROR_WITH_DELAY("Connection interrupted. Aborting...");
+				break;
 			}
+		}
 
 		eCentWallet.add(eCentBuffer);
-	}
-
-	private boolean initiateWithDirector()
-	{
-		String connect_director = MessageFlag.C_INIT + ":DATA";
-		String result = null;
-		
-		while (result == null)
-			try {
-				result = director.request(connect_director);
-				ALERT("Connected! (Director)");
-			} catch(IOException err) {
-				ERROR_WITH_DELAY("Could not contact director. "+colour("Retrying...",BLUE));
-				director.reconnect();
-			}
-		
-        return result != null;
+		bank.close();
+		SUCCESS("eCents added to wallet!");
 	}
 
 	private String analyse_data(String dataType, String data) {
+
 		while(true) {
 			if (eCentWallet.isEmpty())
 				buyMoney(100);
+			
+			// Connect to director
+			director.connect();
 			
 			String temporary_eCent = eCentWallet.remove();
 
@@ -174,7 +164,9 @@ public class Collector extends Node {
 							throw new IOException(analysis.raw());
 						else
 							ALERT("Response recieved!");
-
+		
+						//close connection
+						director.close();
 						return analysis.data;
 					
 					case MessageFlag.ERROR:
@@ -194,12 +186,10 @@ public class Collector extends Node {
 
 				ALERT("Could not get data: "+err.getMessage());
 				ALERT_WITH_DELAY(colour("Retrying...",PURPLE));
-
 				if(!director.connected)
 					director.reconnect();
 			}
 		}
-		
 	}
 
 }
