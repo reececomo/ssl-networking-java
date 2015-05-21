@@ -2,8 +2,10 @@ import java.io.*;
 
 import javax.net.ssl.*;
 import java.security.*;
+import java.util.HashSet;
 
 import lib.*;
+import lib.Message.MessageFlag;
 
 /**
  * Bank Class For handling Ecent generation, checking and depositing
@@ -16,6 +18,8 @@ public class Bank extends Node {
 
 	private static int port = 9999;
 	private static SSLServerSocket sslserversocket = null;
+	private static HashSet<String> valid_analysts = null;
+	private static HashSet<String> waiting_list = null;
 
 	private static ECentWallet bankStore;
 
@@ -31,6 +35,8 @@ public class Bank extends Node {
 	public Bank(int portNo) throws IOException {
 		set_type("BANK");
 		lib.Security.declareServerCert("keystore.jks", "cits3002");
+		valid_analysts = new HashSet<String>();
+		waiting_list = new HashSet<String>();
 
 		bankStore = new ECentWallet(ECENTWALLET_FILE);
 
@@ -83,14 +89,40 @@ public class Bank extends Node {
 			while (client.connected) {
 				try {
 					Message msg = new Message(client.receive());
-					switch (msg.getFlagEnum()) {
-					
+					switch (msg.flag) {
+
+						/*
+						 * Requesting encryption
+						 * BANK_DEP => DEP
+						 */
+						case KEYPAIR:
+							ANNOUNCE(colour("Analyst",PURPLE)+" requesting encryption!");
+							valid_analysts.add(msg.data);
+
+							//IRL: verify analyst authenticity here
+
+							client.send("REGISTERED");
+							SUCCESS("Registered!");
+							break;
+
+						/*
+						 * Requesting encryption
+						 * BANK_DEP => DEP
+						 */
+						case VALID_KEYPAIR:
+							ANNOUNCE(colour("Collector",PURPLE)+" verifying public key authenticity!");
+
+							ALERT("Collector verifying with bank");
+
+							client.send(""+valid_analysts.contains(msg.data));
+							break;
+
 						/*
 						 * Bank Withdrawal
 						 * BANK_WIT => WIT
 						 */
-						case WIT:
-							ANNOUNCE(colour("Collector",PURPLE)+" connected  -->  Withdrawing money");
+						case WITHDRAW:
+							ANNOUNCE(colour("Collector",PURPLE)+" connected  (Withdrawing money)");
 							
 							int amount = Integer.parseInt(msg.data);
 							ALERT("Generating " + amount + " eCents!");
@@ -98,7 +130,7 @@ public class Bank extends Node {
 							for (int i = 0; i < amount; i++)
 								client.send(generateEcent());
 		
-							SUCCESS("Money sent");
+							SUCCESS("Money sent!");
 							break;
 							
 							
@@ -106,8 +138,8 @@ public class Bank extends Node {
 						 * Bank Deposit
 						 * BANK_DEP => DEP
 						 */
-						case DEP:
-							ANNOUNCE(colour("Analyst",PURPLE)+" connected  -->  Depositing money");
+						case DEPOSIT:
+							ANNOUNCE(colour("Analyst",PURPLE)+" connected  (Depositing money)");
 		
 							// Check if eCent is in valid eCent set
 							if (bankStore.contains(msg.data)) {
@@ -115,14 +147,41 @@ public class Bank extends Node {
 								ALERT("Depositing valid eCent");
 								ALERT("Sending acknowledgement to Analyst!");
 								client.send("VALID");
-								bankStore.remove(msg.data);
+								waiting_list.add(msg.data);
 								
 							} else {
 								
-								ALERT("Rejecting invalid eCent");
+								ALERT("Rejecting invalid eCent: "+msg.data);
 								client.send("INVALID");
 								
 							}
+							break;
+
+						case CONFIRM_DEPOSIT:
+							ANNOUNCE(colour("Collector",PURPLE)+" confirming transaction!");
+
+							if (waiting_list.contains(msg.data) && bankStore.contains(msg.data)) {
+								bankStore.remove(msg.data);
+								waiting_list.remove(msg.data);
+
+								SUCCESS("eCent deposited!");
+								client.send("SUCCESS");
+							} else {
+								ERROR("Could not cancel eCent deposit!");
+								client.send("ERROR");
+							}
+
+							break;
+
+						case CANCEL_DEPOSIT:
+							ANNOUNCE(colour("Collector",PURPLE)+" cancelling transaction!");
+
+							if (waiting_list.contains(msg.data))
+								waiting_list.remove(msg.data);
+
+							ERROR("Transaction cancelled!");
+							client.send("SUCCESS");
+
 							break;
 							
 						default:
@@ -131,9 +190,9 @@ public class Bank extends Node {
 		
 					}
 	
-					ALERT("Request finished!\n");
+					ALERT("Done!");
 				} catch (IOException err) {
-					ALERT("Closing connection: " + colour(err.getMessage(),RED));
+					ALERT("Closing connection: " + colour(err.getMessage(),RED) + "\n");
 					client.close();
 				}
 			}

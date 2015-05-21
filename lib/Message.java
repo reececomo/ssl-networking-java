@@ -10,24 +10,25 @@ package lib;
  
 public class Message {
 	
-	public enum Flag { NONE, INIC, INIA, DOIT, WIT, DEP, PUBK, Error, Warning };
-	private Flag flag; 			// flag cannot be changed
+	public enum MessageFlag { NONE, INITIATE_ANALYST, EXAM_REQ, WITHDRAW, DEPOSIT, CONFIRM_DEPOSIT, CANCEL_DEPOSIT,
+							KEYPAIR, VALID_KEYPAIR, PUB_KEY, ERROR, WARNING };
+	public MessageFlag flag; 			// flag cannot be changed
 	public String data; 			// contents can be referenced Message.content
     
   public Message(String rawMessage){
 	  try {
 		  String[] parts = rawMessage.split(":");
-		  this.flag = Flag.valueOf(parts[0]);
+		  this.flag = MessageFlag.valueOf(parts[0].toUpperCase());
 		  if (parts.length > 1)
 			  this.data = parts[1];
 	      
 	  } catch (Exception e) {
 	  	if(rawMessage!=null){
 		  this.data = rawMessage;
-		  this.flag = Flag.NONE;
+		  this.flag = MessageFlag.NONE;
 		}else {
 			data = null;
-			flag = Flag.Error;
+			flag = MessageFlag.ERROR;
 		}
 	  }
   }
@@ -36,7 +37,7 @@ public class Message {
 	  this(flag+":"+message);
   }
  
-  public String getFlag() {
+  public String getMessageFlag() {
 	  String flag;
   
 	  try {
@@ -48,13 +49,8 @@ public class Message {
 	  return flag;
   }
   
-  public Flag getFlagEnum() {
-  
-  	return this.flag;
-  }
-  
   public String raw() {
-	  return this.getFlag() + ":" + this.data;
+	  return this.getMessageFlag() + ":" + this.data;
   }
   
   // For messages in the standard form:

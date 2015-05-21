@@ -2,6 +2,7 @@ import java.io.*;
 import java.security.PublicKey;
 
 import lib.*;
+import lib.Message.MessageFlag;
 
 /**
  * Collector Class
@@ -90,7 +91,7 @@ public class Collector extends Node {
 		bank.connect();
 		
 		ALERT("Sending money withdrawl request..");
-		String withdrawl_request = MessageFlag.BANK_WIT + ":" + amount;
+		String withdrawl_request = MessageFlag.WITHDRAW + ":" + amount;
 		boolean sent = false;
 		
 		while(!sent)
@@ -122,7 +123,47 @@ public class Collector extends Node {
 		SUCCESS("eCents added to wallet!");
 	}
 
+	private boolean validatePublicKey(String pubkey) {
+		ALERT(">> VALIDATING PUBLIC KEY\n");
+		bank.connect();
+		String status = null;
+
+		while (status == null) {
+			try {
+				if(bank.send(MessageFlag.VALID_KEYPAIR + ":" + pubkey))
+					status = bank.receive();
+			} catch(Exception e) {
+				ALERT_WITH_DELAY("Error connecting to bank! Retrying...");
+				bank.reconnect();
+			}
+		}
+
+		bank.close();
+
+		return status.equals("true");
+	}
+
+	private String messageBank(MessageFlag bankMsg, String eCent) {
+		bank.connect();
+		String status = null;
+
+		while (status == null) {
+			try {
+				if(bank.send(bankMsg + ":" + eCent))
+					status = bank.receive();
+			} catch(Exception e) {
+				ALERT_WITH_DELAY("Error connecting to bank! Retrying...");
+				bank.reconnect();
+			}
+		}
+
+		bank.close();
+
+		return status;
+	}
+
 	private String analyse_data(String dataType, String data) {
+		boolean eCent_sent = false;
 
 		while(true) {
 			if (eCentWallet.isEmpty())
@@ -141,47 +182,59 @@ public class Collector extends Node {
 				
 				Message msg = new Message(encrypted_msg);
 				
-				switch(msg.getFlag()){
-					case MessageFlag.PUB_KEY:
+				switch(msg.flag){
+					case PUB_KEY:
 						PublicKey analyst_public_key = KeyFromString(msg.data);
 						ALERT("Public key recieved!");
-						
-						ALERT("Encrypting eCent!");
-						String encrypted_eCent = encrypt(temporary_eCent, analyst_public_key);
 
-						// send encrypted eCent + data
-						ALERT("Sending eCent!");
-						director.send(encrypted_eCent);
-						
-						ALERT("Sending data!");
-						director.send(data);
-						
-						Message analysis = new Message (director.receive());
-						String flag = analysis.getFlag();
-						ALERT("Receiving response...");
-						
-						if(flag == MessageFlag.ERROR || flag == MessageFlag.WARNING)
-							throw new IOException(analysis.raw());
-						else
-							ALERT("Response recieved!");
-		
-						//close connection
-						director.close();
-						return analysis.data;
+						if(!validatePublicKey(msg.data)) {
+							ERROR("Error: Invalid analyst!");
+							break;
+						} else {
+
+							ALERT("Encrypting eCent!");
+							String encrypted_eCent = encrypt(temporary_eCent, analyst_public_key);
+
+							// send encrypted eCent + data
+							ALERT("Sending eCent!");
+							eCent_sent = director.send(encrypted_eCent);
+							
+							ALERT("Sending data!");
+							director.send(data);
+							
+							Message analysis = new Message (director.receive());
+							ALERT("Receiving response...");
+							
+							if(analysis.flag == MessageFlag.ERROR || analysis.flag == MessageFlag.WARNING)
+								throw new IOException(analysis.raw());
+							else {
+								ALERT("Confirming with bank: " + messageBank(MessageFlag.CONFIRM_DEPOSIT,temporary_eCent));
+								ALERT("Response recieved!");
+							}
+			
+							//close connection
+							director.close();
+							return analysis.data;
+						}
 					
-					case MessageFlag.ERROR:
+					case ERROR:
 						throw new IOException(msg.raw());
 
-					case MessageFlag.WARNING:
+					case WARNING:
 						throw new IOException(colour(msg.raw(),PURPLE));
 
 					default:
-						throw new NullPointerException("Unexpected message format!");
+						throw new NullPointerException("Unexpected message format! " + msg.raw());
 
 				}
 
 			} catch(IOException err) {
 				// Error in sending
+				if(eCent_sent) {
+					ALERT("Cancelling payment with bank: " + messageBank(MessageFlag.CANCEL_DEPOSIT,temporary_eCent));
+					eCent_sent = false;
+				}
+
 				this.eCentWallet.add( temporary_eCent );
 
 				ALERT("Could not get data: "+err.getMessage());

@@ -33,8 +33,8 @@ public class Node extends Security {
 	protected final static int DATA = 0;
 	protected final static int ECENT = 1;
 	protected final static int PKEY = 1;
-	private final static int DEFAULT_PAUSE_LENGTH = 2500; // 2.5 seconds
-	private final static int SHORT_PAUSE_LENGTH = 200; // 0.2 seconds
+	private static int DEFAULT_PAUSE_LENGTH = 2500; // 2.5 seconds
+	private static int SHORT_PAUSE_LENGTH = 200; // 0.2 seconds
 	private String NODE_TYPE = null;
 	
 	// For directional analysts
@@ -107,6 +107,11 @@ public class Node extends Security {
 			{
 				show_colours = false;
 				params_given++;
+			}
+
+			if (arg[0].equals("-demomode")) {
+				DEFAULT_PAUSE_LENGTH *= 2;
+				SHORT_PAUSE_LENGTH *= 5;
 			}
 		}
 		

@@ -7,6 +7,7 @@ import javax.net.ssl.*;
 import java.net.SocketException;
 
 import lib.*;
+import lib.Message.MessageFlag;
 import lib.SocketConnection.ClientType;
 
 /**
@@ -104,12 +105,12 @@ public class Director extends Node {
 					Message msg = new Message(client.receive());
 					String[] msg_data = msg.getData();
 					
-					switch (msg.getFlagEnum()) {
+					switch (msg.flag) {
 
 					/*
 					 * Initiate Analyst
 					 */
-					case INIA:
+					case INITIATE_ANALYST:
 						ALERT(colour("Analyst",PURPLE) + " connected... (" + msg_data[DATA_TYPE] + ")");
 						client.nodeType = ClientType.ANALYST;
 
@@ -134,7 +135,7 @@ public class Director extends Node {
 					 * Data analysis request
 					 * (The main transaction between Cllctr+Anlsyt)
 					 */
-					case DOIT:
+					case EXAM_REQ:
 						client.nodeType = ClientType.COLLECTOR;
 
 						ANNOUNCE("New collector transaction request...");
@@ -227,8 +228,6 @@ public class Director extends Node {
 					}
 					
 				} catch(SSLException error) {
-					ALERT("Failed connection: "+colour(error.getMessage(),RED));
-
 					// Close the client connection
 					client.close();
 

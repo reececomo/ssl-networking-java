@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.security.*;
 
 import lib.*;
+import lib.Message.MessageFlag;
 
 /**
  * Analyst Class for analysing data
@@ -33,14 +34,15 @@ public class Analyst extends Node {
 
 	public Analyst() {
 		set_type("ANALYST-"+analyst_type.name());
-		
-		this.generateKeyPair();
 
 		lib.Security.declareClientCert("cacerts.jks");
 		
 		// Connect to bank and director through abstract class
 		bank = new SocketConnection(bankIPAddress, bankPort);
 		director = new SocketConnection(directorIPAddress, dirPort);
+
+		// Generate key pair and register with bank
+		this.registerKeyPair();
 		
 		// Maintain a connection with the director
 		director.connect();
@@ -63,7 +65,7 @@ public class Analyst extends Node {
 	private boolean registerWithDirector() {
 
 		ANNOUNCE("Registering availability with Director");
-		String register_message = MessageFlag.A_INIT + ":" + this.analyst_type + ";" + StringFromKey(this.public_key);
+		String register_message = MessageFlag.INITIATE_ANALYST + ":" + this.analyst_type + ";" + StringFromKey(this.public_key);
 		String response;
 		try {
 			response = director.request(register_message);
@@ -77,7 +79,7 @@ public class Analyst extends Node {
 	private boolean depositMoney(String eCent) {
 		int attempt = 0;
 		String result = null;
-		String deposit_request = MessageFlag.BANK_DEP + ":" + eCent;
+		String deposit_request = MessageFlag.DEPOSIT + ":" + eCent;
 
 		bank.connect();
 
@@ -111,7 +113,7 @@ public class Analyst extends Node {
 				
 				ALERT("Receiving request!");
 				
-				if(request.getFlag().equals(MessageFlag.EXAM_REQ)) {
+				if(request.flag == MessageFlag.EXAM_REQ) {
 					
 					String eCent = decrypt(request.data,private_key);
 					
@@ -130,7 +132,7 @@ public class Analyst extends Node {
 							ALERT("...complete!");
 							
 							director.send( result );
-							ALERT("Analysis sent!");
+							ALERT("Analysis sent!\n");
 							
 						} else {
 							director.send("Error: Could not deposit eCent!");
@@ -148,18 +150,48 @@ public class Analyst extends Node {
 		}
 	}
 	
-	private void generateKeyPair() {
+	private boolean registerKeyPair() {
 		try {
 			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 			keyGen.initialize(2048);
 			KeyPair pair = keyGen.generateKeyPair();
 			private_key = pair.getPrivate();
 			public_key = pair.getPublic();
-			
 		} catch (NoSuchAlgorithmException e) {
-			ANNOUNCE("ERROR: Error generating secure socket keys");
+			ANNOUNCE("ERROR: Could not generate public/private keys!");
 			System.exit(-1);
 		}
+
+		// Connect to bank
+		int attempt = 0;
+		bank.connect();
+
+		while (attempt < 3) {
+			try {
+				ANNOUNCE("Attempting to register keypair with Bank!");
+				if(bank.send(MessageFlag.KEYPAIR + ":" + StringFromKey(public_key))) {
+					if(bank.receive().equals("REGISTERED")) {
+					ALERT("Registered with bank!");
+						bank.close();
+						return true;
+					}
+				}
+				else {
+					ALERT_WITH_DELAY("Error connecting to bank... retrying...");
+					bank.reconnect();
+				}
+
+			} catch (IOException e) {
+				ANNOUNCE("ERROR: Error registering keypair with bank!");
+				break;
+			}
+			attempt++;
+		}
+
+		// Close program
+		ERROR("Could not register with bank.");
+		System.exit(-1);
+		return false;
 	}
 	
 	private String analyse(String rawdata) {
@@ -203,7 +235,7 @@ public class Analyst extends Node {
 			 * Invalid analyst given
 			 */
 			default: // Invalid Analyst Type
-				return MessageFlag.ERROR;
+				return null;
 		}
 	}
 }
