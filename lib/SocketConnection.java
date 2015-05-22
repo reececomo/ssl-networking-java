@@ -115,7 +115,7 @@ public class SocketConnection {
 	 */
 	public boolean send(String msg) {
 
-		if(connected) {
+		if(connected && writer != null) {
 			try {
 				// Attempt to send message
 				writer.write(msg + "\n");
@@ -134,7 +134,7 @@ public class SocketConnection {
 	}
 	
 	/*
-	 *	Recieve a message!
+	 *	receive a message!
 	 *		returns String or throws an error
 	 */
 	public String receive() throws IOException {

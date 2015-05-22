@@ -79,7 +79,7 @@ public class Analyst extends Node {
 	private boolean depositMoney(String eCent) {
 		int attempt = 0;
 		String result = null;
-		String deposit_request = MessageFlag.DEPOSIT + ":" + eCent;
+		String deposit_request = MessageFlag.DEPOSIT + ":" + eCent + ";" + StringFromKey(public_key);
 
 		bank.connect();
 
@@ -90,6 +90,7 @@ public class Analyst extends Node {
 				break;
 			} catch (IOException err) {
 				ALERT_WITH_DELAY("Connection error! Retrying...");
+				registerKeyPair(); // re register keypair
 				bank.reconnect();
 			}
 
@@ -112,24 +113,28 @@ public class Analyst extends Node {
 				Message request = new Message(director.receive());
 				
 				ALERT("Receiving request!");
+
+				if(request.flag == MessageFlag.VALIDATE_WITH_BANK) {
+					director.send(""+registerKeyPair());
+				}
 				
 				if(request.flag == MessageFlag.EXAM_REQ) {
 					
-					String eCent = decrypt(request.data,private_key);
-					
+					// Decrypt eCent
+					String eCent = decrypt(request.data, private_key);
+
 					if (eCent == null) {
 						ALERT("Error: Could not decrypt message! (" + eCent + ")");
-					} else {
-						// Successful decryption
+
+					} else { // Successful decryption
+
 						ALERT("Depositing payment!");
-						
 						if (depositMoney(eCent)) {
 							ALERT("Payment deposited!");
-	
-							ALERT("Analysing...");
+							ALERT(colour("Analysing...",BLUE));
 							String result = analyse(director.receive());
 							
-							ALERT("...complete!");
+							ALERT_WITH_DELAY("...complete!");
 							
 							director.send( result );
 							ALERT("Analysis sent!\n");
@@ -143,14 +148,14 @@ public class Analyst extends Node {
 				}
 
 			} catch (IOException err) {
-				ALERT("Error: Could not recieve message from Director");
+				ALERT("Error: Could not receive message from Director");
 				break;
 			}
 			
 		}
 	}
-	
-	private boolean registerKeyPair() {
+
+	private void generateKeyPair() {
 		try {
 			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 			keyGen.initialize(2048);
@@ -161,6 +166,11 @@ public class Analyst extends Node {
 			ANNOUNCE("ERROR: Could not generate public/private keys!");
 			System.exit(-1);
 		}
+	}
+	
+	private boolean registerKeyPair() {
+		if(private_key == null)
+			generateKeyPair();
 
 		// Connect to bank
 		int attempt = 0;

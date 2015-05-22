@@ -48,7 +48,7 @@ public class Collector extends Node {
 			ANNOUNCE("Requesting navigation analysis...");
 			char[] movements = analyse_data("NAV", coordinates).toCharArray(); // e.g. [0,1,0,0,1,2,0,3,1,3,2,3,2,1]
 			
-			ALERT("Analysis recieved.");
+			ALERT("Analysis received.");
 			
 			if (movements.length > 0)
 				ANNOUNCE("Moving");
@@ -123,15 +123,18 @@ public class Collector extends Node {
 		SUCCESS("eCents added to wallet!");
 	}
 
-	private boolean validatePublicKey(String pubkey) {
-		ALERT(">> VALIDATING PUBLIC KEY\n");
+	private boolean verifyIdentity(String pubkey) {
+		ALERT("Verifying Analyst identity with Bank...");
 		bank.connect();
-		String status = null;
+		int attempt = 0;
+		String status = "";
 
-		while (status == null) {
+		while (attempt < 5) {
 			try {
-				if(bank.send(MessageFlag.VALID_KEYPAIR + ":" + pubkey))
+				if(bank.send(MessageFlag.VALID_KEYPAIR + ":" + pubkey)) {
 					status = bank.receive();
+					break;
+				}
 			} catch(Exception e) {
 				ALERT_WITH_DELAY("Error connecting to bank! Retrying...");
 				bank.reconnect();
@@ -139,7 +142,6 @@ public class Collector extends Node {
 		}
 
 		bank.close();
-
 		return status.equals("true");
 	}
 
@@ -164,6 +166,7 @@ public class Collector extends Node {
 
 	private String analyse_data(String dataType, String data) {
 		boolean eCent_sent = false;
+		String analyst_identifier = "";
 
 		while(true) {
 			if (eCentWallet.isEmpty())
@@ -174,33 +177,42 @@ public class Collector extends Node {
 			
 			String temporary_eCent = eCentWallet.remove();
 
+
+			/**
+			 *	Request data analysis
+			 */
 			try {
-				director.send(MessageFlag.EXAM_REQ + ":" + dataType);
+				// Send examination request (with the data analysis type)
+				ALERT("Sending new request");
+				Message msg = new Message(director.request(MessageFlag.EXAM_REQ + ":" + dataType));
 				
-				// Read response
-				String encrypted_msg = director.receive();
-				
-				Message msg = new Message(encrypted_msg);
-				
+				// Check that a public key was sent back
 				switch(msg.flag){
 					case PUB_KEY:
-						PublicKey analyst_public_key = KeyFromString(msg.data);
-						ALERT("Public key recieved!");
+						ALERT("Analyst public encryption key received!");
+						analyst_identifier = msg.data;
+						PublicKey analyst_public_key = KeyFromString(analyst_identifier);
 
-						if(!validatePublicKey(msg.data)) {
+						// Verify the public key with the bank
+						if(!verifyIdentity(analyst_identifier)) {
 							ERROR("Error: Invalid analyst!");
 							break;
 						} else {
+							// Public key was valid with bank
+							SUCCESS("Valid analyst.");
 
-							ALERT("Encrypting eCent!");
+							// Encrypt ecent
 							String encrypted_eCent = encrypt(temporary_eCent, analyst_public_key);
+							ALERT("Encrypting eCent for analyst ("+encrypted_eCent.substring(0,20)+"...)");
 
 							// send encrypted eCent + data
-							ALERT("Sending eCent!");
+							ALERT("Sending encrypted eCent!");
 							eCent_sent = director.send(encrypted_eCent);
 							
-							ALERT("Sending data!");
+							ALERT("Sending data for analysis!");
 							director.send(data);
+
+							ALERT(colour("Awaiting response...",BLUE));
 							
 							Message analysis = new Message (director.receive());
 							ALERT("Receiving response...");
@@ -208,8 +220,8 @@ public class Collector extends Node {
 							if(analysis.flag == MessageFlag.ERROR || analysis.flag == MessageFlag.WARNING)
 								throw new IOException(analysis.raw());
 							else {
-								ALERT("Confirming with bank: " + messageBank(MessageFlag.CONFIRM_DEPOSIT,temporary_eCent));
-								ALERT("Response recieved!");
+								ALERT("Confirming with bank: " + messageBank(MessageFlag.CONFIRM_DEPOSIT,temporary_eCent + ";" + analyst_identifier));
+								ALERT("Response received!");
 							}
 			
 							//close connection
@@ -231,7 +243,7 @@ public class Collector extends Node {
 			} catch(IOException err) {
 				// Error in sending
 				if(eCent_sent) {
-					ALERT("Cancelling payment with bank: " + messageBank(MessageFlag.CANCEL_DEPOSIT,temporary_eCent));
+					ALERT("Cancelling payment with bank: " + messageBank(MessageFlag.CANCEL_DEPOSIT,temporary_eCent + ";" + analyst_identifier));
 					eCent_sent = false;
 				}
 

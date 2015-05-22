@@ -50,7 +50,6 @@ public class Bank extends Node {
 				SSLSocket sslsocket = null;
 				try {
 					sslsocket = (SSLSocket) sslserversocket.accept();
-					ALERT("New connection!");
 					new Thread(new clientConnection(sslsocket)).start();
 
 				} catch (IOException e) {
@@ -80,6 +79,7 @@ public class Bank extends Node {
 	private class clientConnection implements Runnable {
 
 		protected SocketConnection client;
+		String raw_ecent = null;
 
 		public clientConnection(SSLSocket socket) {
 			client = new SocketConnection(socket);
@@ -92,11 +92,11 @@ public class Bank extends Node {
 					switch (msg.flag) {
 
 						/*
-						 * Requesting encryption
-						 * BANK_DEP => DEP
+						 * Requesting authenticity
+						 * KEYPAIR
 						 */
 						case KEYPAIR:
-							ANNOUNCE(colour("Analyst",PURPLE)+" requesting encryption!");
+							ALERT(colour("Analyst",PURPLE)+" requesting encryption!");
 							valid_analysts.add(msg.data);
 
 							//IRL: verify analyst authenticity here
@@ -106,23 +106,27 @@ public class Bank extends Node {
 							break;
 
 						/*
-						 * Requesting encryption
-						 * BANK_DEP => DEP
+						 * Validating encryption
+						 * VALID_KEYPAIR
 						 */
 						case VALID_KEYPAIR:
-							ANNOUNCE(colour("Collector",PURPLE)+" verifying public key authenticity!");
+							ALERT(colour("Collector",PURPLE)+" verifying public key authenticity!");
 
-							ALERT("Collector verifying with bank");
+							ALERT("Collector verifying with bank...");
+							if(valid_analysts.contains(msg.data))
+								SUCCESS("Successfully verified analyst!");
+							else
+								ERROR("Could not verify the identity of analyst!");
 
 							client.send(""+valid_analysts.contains(msg.data));
 							break;
 
 						/*
 						 * Bank Withdrawal
-						 * BANK_WIT => WIT
+						 * WITHDRAW
 						 */
 						case WITHDRAW:
-							ANNOUNCE(colour("Collector",PURPLE)+" connected  (Withdrawing money)");
+							ALERT(colour("Collector",PURPLE)+" connected  (Withdrawing money)");
 							
 							int amount = Integer.parseInt(msg.data);
 							ALERT("Generating " + amount + " eCents!");
@@ -135,14 +139,16 @@ public class Bank extends Node {
 							
 							
 						/*
-						 * Bank Deposit
-						 * BANK_DEP => DEP
+						 * Put eCent on deposit waiting_list
+						 * DEPOSIT
 						 */
 						case DEPOSIT:
-							ANNOUNCE(colour("Analyst",PURPLE)+" connected  (Depositing money)");
+							ALERT(colour("Analyst",PURPLE)+" connected  (Depositing money)");
+							
+							raw_ecent = msg.data.split(";")[0];
 		
 							// Check if eCent is in valid eCent set
-							if (bankStore.contains(msg.data)) {
+							if (bankStore.contains(raw_ecent)) {
 								
 								ALERT("Depositing valid eCent");
 								ALERT("Sending acknowledgement to Analyst!");
@@ -151,18 +157,29 @@ public class Bank extends Node {
 								
 							} else {
 								
-								ALERT("Rejecting invalid eCent: "+msg.data);
+								ALERT("Rejecting invalid eCent: "+raw_ecent);
 								client.send("INVALID");
 								
 							}
 							break;
 
+						/*
+						 * Deposit eCent into Analyst account
+						 * CONFIRM_DEPOSIT
+						 */
 						case CONFIRM_DEPOSIT:
-							ANNOUNCE(colour("Collector",PURPLE)+" confirming transaction!");
+							ALERT(colour("Collector",PURPLE)+" confirming transaction!");
 
-							if (waiting_list.contains(msg.data) && bankStore.contains(msg.data)) {
-								bankStore.remove(msg.data);
+							// msg.data = eCent:public_key
+							raw_ecent = msg.data.split(";")[0];
+
+							if (waiting_list.contains(msg.data) && bankStore.contains(raw_ecent)) {
+
+								bankStore.remove(raw_ecent);
 								waiting_list.remove(msg.data);
+
+								// Deposit eCent
+								bankStore.add(msg.data);
 
 								SUCCESS("eCent deposited!");
 								client.send("SUCCESS");
@@ -174,7 +191,7 @@ public class Bank extends Node {
 							break;
 
 						case CANCEL_DEPOSIT:
-							ANNOUNCE(colour("Collector",PURPLE)+" cancelling transaction!");
+							ALERT(colour("Collector",PURPLE)+" cancelling transaction!");
 
 							if (waiting_list.contains(msg.data))
 								waiting_list.remove(msg.data);
@@ -190,9 +207,8 @@ public class Bank extends Node {
 		
 					}
 	
-					ALERT("Done!");
 				} catch (IOException err) {
-					ALERT("Closing connection: " + colour(err.getMessage(),RED) + "\n");
+					ALERT("Closing connection: " + colour(err.getMessage(),PURPLE));
 					client.close();
 				}
 			}

@@ -139,7 +139,7 @@ public class Director extends Node {
 						client.nodeType = ClientType.COLLECTOR;
 
 						ANNOUNCE("New collector transaction request...");
-						ALERT("Analysis request recieved!");
+						ALERT("Analysis request received!");
 
 						// Init success
 						boolean success = false;
@@ -157,21 +157,23 @@ public class Director extends Node {
 							for (SocketConnection analyst : currentPool) {
 								selected_analyst = analyst;
 								
-								if (!analyst.busy && analyst.connected) {
+								if (!analyst.busy && analyst.isConnected()) {
 									analyst.busy = true;
 
 									ALERT("Analyst found!");
 									ALERT("Sending " + colour("Collector",PURPLE) + " the public encryption key!");
 
+									analyst.request(MessageFlag.VALIDATE_WITH_BANK + "");
+
 									// Send the analysts public key
 									request = MessageFlag.PUB_KEY + ":" + analyst.public_key;
 									client.send(request);
 
-									// Recieve an encrypted eCent
+									// receive an encrypted eCent
 									encryptedECent = client.receive();
 									data = client.receive();
 
-									ALERT("Recieved eCent and data! Forwarding to analyst.");
+									ALERT("received eCent and data! Forwarding to analyst.");
 										
 									// Prepare encrypted eCent with an analysis request
 									request = MessageFlag.EXAM_REQ + ":" + encryptedECent;

@@ -28,7 +28,7 @@
 ##1 - Core Components
 ###1.0 Description
 The project consists of four root components:
-- <i>**[The Analysts (1.1)](/Analyst.java)**: Nodes that recieve raw data and return a result/action (for the price of 1 eCent).</i>
+- <i>**[The Analysts (1.1)](/Analyst.java)**: Nodes that receive raw data and return a result/action (for the price of 1 eCent).</i>
 - <i>**[The Bank (1.2)](/Bank.java)**: A single node that dishes out money to the collectors, and stores accounts for the analysts.</i>
 - <i>**[The Collectors (1.3)](/Collector.java)**: Nodes that collect raw data and send it to the director for processing.</i>
 - <i>**[The Director (1.4)](/Director.java)**: A "bridging" delegate node that forwards collectors requests for analysis.</i>

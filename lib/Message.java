@@ -11,7 +11,7 @@ package lib;
 public class Message {
 	
 	public enum MessageFlag { NONE, INITIATE_ANALYST, EXAM_REQ, WITHDRAW, DEPOSIT, CONFIRM_DEPOSIT, CANCEL_DEPOSIT,
-							KEYPAIR, VALID_KEYPAIR, PUB_KEY, ERROR, WARNING };
+							KEYPAIR, VALID_KEYPAIR, PUB_KEY, ERROR, WARNING, VALIDATE_WITH_BANK };
 	public MessageFlag flag; 			// flag cannot be changed
 	public String data; 			// contents can be referenced Message.content
     
