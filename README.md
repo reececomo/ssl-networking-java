@@ -35,6 +35,7 @@
     -  <code>-bank=<*bankIP:port*></code>: IP Address of bank (port optional)
     -  <code>-demomode</code>: Start the program in demonstration mode
     -  <code>-nocolour</code>: Disable coloured output in the terminal
+    
 - **<code>java Collector</code>**
   -  <code>-sslcert=<*cacerts.jks*></code>: The CA certificates SSL TrustStore file
   -  <code>-dir=<*directorIP:port*></code>: IP Address of director (port optional)
