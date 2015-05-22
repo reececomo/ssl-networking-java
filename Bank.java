@@ -96,8 +96,11 @@ public class Bank extends Node {
 						 * KEYPAIR
 						 */
 						case KEYPAIR:
-							ALERT(colour("Analyst",PURPLE)+" requesting encryption!");
-							valid_analysts.add(msg.data);
+							ALERT(colour("Analyst",PURPLE)+" requesting identification!");
+							if(!valid_analysts.contains(msg.data))
+								valid_analysts.add(msg.data);
+							else
+								ALERT("...already verified.");
 
 							//IRL: verify analyst authenticity here
 

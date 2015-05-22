@@ -28,8 +28,10 @@ public class Collector extends Node {
 	public Collector() throws IOException {
 		set_type("COLLECTOR");
 		lib.Security.declareClientCert("cacerts.jks");
+
+		ANNOUNCE("Starting up " + colour("Mars Rover",RED) + "...");
 		
-		// Connect to bank and director through abstract class
+		// Prepare the connections to bank and director through abstract class
 		bank = new SocketConnection(bankIPAddress, bankPort);
 		director = new SocketConnection(directorIPAddress, dirPort);
 		
@@ -37,36 +39,62 @@ public class Collector extends Node {
 		eCentWallet = new ECentWallet( ECENTWALLET_FILE );
 		ANNOUNCE(eCentWallet.displayBalance());
 
+		// Run the main program
 		this.runCollector();
 	}
-	
+
+
+	/*
+	 *	Mars Rover
+	 *		BOT Mode
+	 */
 	private void runCollector() {
-		int[] dest = {12,12};
-		String coordinates = stringCoords(xpos,ypos,dest[x],dest[y]); // "0,0:12:12"
+
+		// Initiate the coordination system
+		int[] dest = new int[2];
+		String coordinates, newx, newy; 
+		xpos = randInt(-100,100);
+		ypos = randInt(-100,100);
 
 		while(true) {
-			ANNOUNCE("Requesting navigation analysis...");
+			// Random coordinates
+			dest[x] = randInt(-100,100);
+			dest[y] = randInt(-100,100);
+
+			ANNOUNCE("Current position is "+colour("Latitude: "+xpos+", Longitude: "+ypos,BLUE) +".");
+			ANNOUNCE("Requesting navigational analysis...");
+
+			coordinates = stringCoords(xpos,ypos,dest[x],dest[y]);
 			char[] movements = analyse_data("NAV", coordinates).toCharArray(); // e.g. [0,1,0,0,1,2,0,3,1,3,2,3,2,1]
 			
-			ALERT("Analysis received.");
-			
+			SUCCESS("Navigation pathway received!");
+
 			if (movements.length > 0)
 				ANNOUNCE("Moving");
 			
 			for(char move : movements) {
-				int dir = Character.getNumericValue(move);
-				ALERT(colour("Moving "+direction[dir], BLUE));
+				int next_dir = Character.getNumericValue(move);
+				
+				// Sense the surroundings
+				String surroundings = sensor();
 
-				// Do something
-				// simulate movement?
-				
-				// sense surroundings?
-				//String action = sensor();
-				//If action is lazer, make lazer sound
-				//ALERT(action);
-				
-				// if hit object on next movement run something
-				// analyse_data("ORC","Unicorn:SMALL");
+				ALERT_ACTION("Sensor results: "+surroundings);
+
+				if(surroundings.equals("ALL-CLEAR"))
+					ALERT_ACTION("No obstruction detected... moving "+colour(direction[next_dir], BLUE) + ".");
+				else {
+					ALERT_WITH_DELAY(colour("Obstruction detected!",RED));
+					String response = analyse_data("ORC", surroundings);
+
+					if (response.equals("MOVE"))
+						ALERT_ACTION("Obstruction not dangerous! Running over it "+colour(direction[next_dir], BLUE) + " with caution.");
+
+					else if (response.equals("AVOID")) {
+						ALERT_ACTION("Obstruction "+colour("dangerous",RED)+".");
+						ALERT_ACTION("Re-calculating path!");
+						break;
+					}
+				}
 				
 				switch(move) {
 					case LEFT: this.xpos--; break;
@@ -76,12 +104,36 @@ public class Collector extends Node {
 				}
 			}
 
-			SUCCESS("Finished all moves, request more...");
+			if(movements.length == 0)
+				SUCCESS("Finished all moves, request more...");
 		}
 	}
 
-	private String sensor(){
-		return "All-Clear";
+	/*
+	 * Example sensor method
+	 *	 (because not a real robot)
+	 */
+	private String sensor() {
+		// 20/24 chance of receiving all-clear
+		int variable = randInt(0,24);
+
+		// Returns a statistically likely outcome
+		if(variable >= 4)
+			return "ALL-CLEAR";
+		else
+			switch(variable) {
+				case 0:
+					return "STICK:SMALL";
+				case 1:
+					return "STICK:LARGE";
+				case 2:
+					return "ROCK:LARGE";
+				case 3:
+					return "ALIEN:UNKNOWN";
+				default:
+					return "ALL-CLEAR";
+			}
+			
 	}
 
 
@@ -183,7 +235,7 @@ public class Collector extends Node {
 			 */
 			try {
 				// Send examination request (with the data analysis type)
-				ALERT("Sending new request");
+				ALERT("Sending new data analysis request...");
 				Message msg = new Message(director.request(MessageFlag.EXAM_REQ + ":" + dataType));
 				
 				// Check that a public key was sent back

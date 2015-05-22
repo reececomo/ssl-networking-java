@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Random;
 
 /**
  * Demo Helper
@@ -36,6 +37,10 @@ public class Node extends Security {
 	private static int DEFAULT_PAUSE_LENGTH = 2500; // 2.5 seconds
 	private static int SHORT_PAUSE_LENGTH = 200; // 0.2 seconds
 	private String NODE_TYPE = null;
+
+	// Analyst subtypes
+	protected enum AnalystType { NAV, ORC }
+	protected static AnalystType analyst_type;
 	
 	// For directional analysts
 	protected final static char LEFT = '0';
@@ -113,6 +118,13 @@ public class Node extends Security {
 				DEFAULT_PAUSE_LENGTH *= 2;
 				SHORT_PAUSE_LENGTH *= 5;
 			}
+
+			if (arg[0].toUpperCase().equals("NAV")) {
+				analyst_type = AnalystType.NAV;
+			}
+			if (arg[0].toUpperCase().equals("ORC")) {
+				analyst_type = AnalystType.ORC;
+			}
 		}
 		
 		return params_given;
@@ -176,6 +188,14 @@ public class Node extends Security {
 		} catch (Exception err) { err.printStackTrace(); }
 	}
 
+	public void ALERT_ACTION (String message) {
+		try {
+			System.out.println("> " + message);
+			Thread.sleep( SHORT_PAUSE_LENGTH );
+			
+		} catch (Exception err) { err.printStackTrace(); }
+	}
+
 	public void WARN (String message) {
 		try {
 			System.out.println(colour(" >> " + message,PURPLE));
@@ -227,5 +247,12 @@ public class Node extends Security {
 
 		// Don't show colours
 		return text;
+	}
+
+	public static int randInt(int min, int max) {
+	    Random rand = new Random();
+	    int randomNum = rand.nextInt((max - min) + 1) + min;
+
+	    return randomNum;
 	}
 }

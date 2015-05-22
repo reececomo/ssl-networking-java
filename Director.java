@@ -163,6 +163,7 @@ public class Director extends Node {
 									ALERT("Analyst found!");
 									ALERT("Sending " + colour("Collector",PURPLE) + " the public encryption key!");
 
+									// Tell the analyst to verify with bank (if haven't already)
 									if(analyst.send(MessageFlag.VALIDATE_WITH_BANK + ""))
 										analyst.receive();
 

@@ -7,17 +7,12 @@ import lib.Message.MessageFlag;
 /**
  * Analyst Class for analysing data
  * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
- * @version 5.9.15
  */
 
 public class Analyst extends Node {
 	
 	// The persistent connections
 	private SocketConnection bank, director;
-
-	// Analyst subtypes (add here)
-	private enum AnalystType { NAV, ORC }
-	private AnalystType analyst_type = AnalystType.NAV; // [navigator] or "ORC" [object response coordinator]
 	
 	// Local keys
 	private PrivateKey private_key;
@@ -27,6 +22,8 @@ public class Analyst extends Node {
 	 * Main
 	 */
 	public static void main(String[] args) {
+		analyst_type = AnalystType.NAV; // "NAV" [navigator] or "ORC" [object response coordinator]
+
 		load_parameters(args);
 		new Analyst();
 	}
@@ -214,16 +211,16 @@ public class Analyst extends Node {
 			 *  Navigator Analyst
 			 */
 			case NAV:
-				//int[] start = extract_coordinates(data[0]);
-				//int[] end = extract_coordinates(data[1]);
-				
-				// Write code here
-				// 	Path-finding (or generating)
-				// Access to:
-				//  start[x],start[y],end[x],end[y]
-				// Output should be a character array:
-				char[] instructions = {LEFT,DOWN,DOWN,DOWN,RIGHT,RIGHT,
-						RIGHT,DOWN,DOWN,LEFT,DOWN,DOWN};
+				//Number of moves to send back
+				int num_of_moves = 20;
+
+				char[] instructions = new char[num_of_moves];
+
+				for(int i = 0; i < num_of_moves; i++)
+					instructions[i] = (""+randInt(0,3)).charAt(0);
+
+				// Normally you would do some
+				//	sort of pathfinding algorithm here.
 				
 				ALERT("Instructions encoded: " + new String(instructions));
 				
@@ -233,14 +230,29 @@ public class Analyst extends Node {
 			 * Object Response Coordinator
 			 */
 			case ORC:
-				String object = data[0];
-				String size = data[1];
-				
-				if (object.equals("Unicorn") || size.equals("SMALL"))
-					return "LAZER";
-				else
-					return "MOVE";
-				
+				try {
+					String object = data[0];
+					String size = data[1];
+
+					// Normally you would do some
+					//	kind of image processing/identifying here.
+
+					if(object.equals("STICK")) {
+						if (size.equals("SMALL"))
+							return "MOVE";
+						else
+							return "AVOID";
+					}
+					if(object.equals("ROCK"))
+						return "AVOID";
+
+					if(object.equals("ALIEN"))
+						return "MOVE";
+
+				} catch (NullPointerException er) {
+					return "AVOID";
+				}
+
 			/**
 			 * Invalid analyst given
 			 */
