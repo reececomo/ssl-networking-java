@@ -16,7 +16,6 @@ import lib.Message.MessageFlag;
 
 public class Bank extends Node {
 
-	private static int port = 9999;
 	private static SSLServerSocket sslserversocket = null;
 	private static HashSet<String> valid_analysts = null;
 	private static HashSet<String> waiting_list = null;
@@ -28,6 +27,7 @@ public class Bank extends Node {
 	 */
 	public static void main(String[] args) throws IOException {
 		ECENTWALLET_FILE = "bank.wallet";
+		port = 9999;
 		load_parameters(args);
 		new Bank( port );
 	}

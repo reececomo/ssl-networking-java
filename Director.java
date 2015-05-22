@@ -20,7 +20,6 @@ import lib.SocketConnection.ClientType;
 public class Director extends Node {
 
 	// Constants
-	private static int port = 9998;
 	private static final int DATA_TYPE = 0;
 	private static final int PUBLIC_KEY = 1;
 
@@ -30,6 +29,7 @@ public class Director extends Node {
 
 	// Main
 	public static void main(String[] args) {
+		port = 9998;
 		load_parameters(args);
 		new Director( port );
 	}
