@@ -34,8 +34,8 @@ The project consists of four distinct pieces of software:
 ##2 - Helper classes and ADTs
 ###2.0 Description
 The project also utilises a number of *Abstract Data Types* and helper classes
-- <i>**[ECentWallet (ADT) (1.1)](/lib/ECentWallet.java)**: Holds the an eCent balance (as well as inidividual eCents) in volatile AND hard memory.</i>
-- <i>**[Message (ADT) (1.2)](/lib/Message.java)**: A wrapper for raw data; provides protocol for reading/formatting messages.</i>
-- <i>**[SocketConnection (ADT) (1.3)](/lib/SocketConnection.java)**: A container class that provides helpful functionality for socket connections.</i>
-- <i>**[Security (Helper) (1.4)](/lib/Security.java)**: Provides a basic framework for accessing the security features of SSL encryption.</i>
-- <i>**[Node (Helper) (1.5)](/lib/Node.java)**: Provides basic display/output information and helper methods.</i>
+- <i>**[ECentWallet (ADT) (2.1)](/lib/ECentWallet.java)**: Holds the an eCent balance (as well as inidividual eCents) in volatile AND hard memory.</i>
+- <i>**[Message (ADT) (2.2)](/lib/Message.java)**: A wrapper for raw data; provides protocol for reading/formatting messages.</i>
+- <i>**[SocketConnection (ADT) (2.3)](/lib/SocketConnection.java)**: A container class that provides helpful functionality for socket connections.</i>
+- <i>**[Security (Helper) (2.4)](/lib/Security.java)**: Provides a basic framework for accessing the security features of SSL encryption.</i>
+- <i>**[Node (Helper) (2.5)](/lib/Node.java)**: Provides basic display/output information and helper methods.</i>
