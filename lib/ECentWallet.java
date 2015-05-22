@@ -15,7 +15,7 @@ import java.util.HashSet;
  * 	in volatile memory and to hard disk.
  * 
  * @author Alexander Popoff-Asotoff, Reece Notargiacomo
- * @date May 7th 2015
+ * @version May 7th 2015
  * 
  */
 public class ECentWallet {

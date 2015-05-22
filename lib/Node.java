@@ -16,7 +16,7 @@ import java.util.Random;
  *  purposes.
  * 
  * @author Reece Notargiacomo
- * @date May 15th 2015
+ * @version May 15th 2015
  * 
  */
 
@@ -26,6 +26,7 @@ public class Node extends Security {
 	protected static int port = 0;
 	protected static int dirPort = 9998;
 	protected static int bankPort = 9999;
+	protected static String sslcert, sslpassword;
 	protected static String directorIPAddress = "localhost";
 	protected static String bankIPAddress = "localhost";
 	protected static String ECENTWALLET_FILE = "ecent.wallet";
@@ -34,7 +35,7 @@ public class Node extends Security {
 	protected final static int DATA = 0;
 	protected final static int ECENT = 1;
 	protected final static int PKEY = 1;
-	private static int DEFAULT_PAUSE_LENGTH = 2500; // 2.5 seconds
+	private static int DEFAULT_PAUSE_LENGTH = 2000; // 2 seconds
 	private static int SHORT_PAUSE_LENGTH = 200; // 0.2 seconds
 	private String NODE_TYPE = null;
 
@@ -102,9 +103,21 @@ public class Node extends Security {
 				params_given++;
 			}
 
-			if (arg[0].equals("-wallet"))
+			if (arg[0].equals("-wallet") || arg[0].equals("-bankvault"))
 			{
 				ECENTWALLET_FILE = arg[1];
+				params_given++;
+			}
+
+			if (arg[0].equals("-sslcert"))
+			{
+				sslcert = arg[1];
+				params_given++;
+			}
+
+			if (arg[0].equals("-sslpass"))
+			{
+				sslpassword = arg[1];
 				params_given++;
 			}
 
@@ -117,13 +130,16 @@ public class Node extends Security {
 			if (arg[0].equals("-demomode")) {
 				DEFAULT_PAUSE_LENGTH *= 2;
 				SHORT_PAUSE_LENGTH *= 5;
+				params_given++;
 			}
 
 			if (arg[0].toUpperCase().equals("NAV")) {
 				analyst_type = AnalystType.NAV;
+				params_given++;
 			}
 			if (arg[0].toUpperCase().equals("ORC")) {
 				analyst_type = AnalystType.ORC;
+				params_given++;
 			}
 		}
 		

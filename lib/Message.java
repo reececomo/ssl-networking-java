@@ -6,6 +6,8 @@ package lib;
  *  and analyst data properties.
  *  
  *  @author Reece Notargiacomo, Alexander Popoff-Asotoff
+ *	@version May 7th 2015
+ *
  */
  
 public class Message {

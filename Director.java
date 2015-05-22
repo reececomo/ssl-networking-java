@@ -44,7 +44,7 @@ public class Director extends Node {
 		lib.Security.declareServerCert("keystore.jks", "cits3002");
 
 		// Create a new fixed size thread pool
-		ExecutorService executorService = Executors.newFixedThreadPool(15);
+		ExecutorService executorService = Executors.newFixedThreadPool(150);
 
 		ANNOUNCE("Starting director server");
 		analystPools = new HashMap<String, HashSet<SocketConnection>>();
@@ -130,10 +130,20 @@ public class Director extends Node {
 
 						break;
 
+				
 					/*
-					 * DOIT:
-					 * Data analysis request
-					 * (The main transaction between Cllctr+Anlsyt)
+					 *	Examination request protocol
+					 *	
+					 *	1. Look for registered Analysts of the correct data type
+					 *	2. Try some until you succeed or run out of candidates
+					 *	3. Remove any disconnected Analysts
+					 *	4. Tell Analyst to verify public key with bank
+					 *	5. Send the public key to the collector
+					 *	6. Receive the eCent and data from the collector
+					 *	7. Forward the eCent and data to the analyst
+					 *	8. Receive the analysis
+					 *	9. Forward the analysis result
+					 *
 					 */
 					case EXAM_REQ:
 						client.nodeType = ClientType.COLLECTOR;
@@ -149,56 +159,57 @@ public class Director extends Node {
 							result = null,
 							warn = null;
 
-						// Get list of analysts for this data type
+						/* 1. Look for registered Analysts of the correct data type */
 						HashSet<SocketConnection> currentPool = analystPools.get(msg_data[DATA_TYPE]);
 						if (currentPool != null) {
 
-							// Try some analyst until you find one that's free and connected
+							/* 2. Try some until you succeed or run out of candidates */
 							for (SocketConnection analyst : currentPool) {
-								selected_analyst = analyst;
+
+								/* 3. Remove any disconnected Analysts */
+								if(!analyst.isConnected()) {
+									currentPool.remove(analyst);
+									analyst.close();
+									break;
+								}
 								
-								if (!analyst.busy && analyst.isConnected()) {
-									analyst.busy = true;
+								if (!analyst.busy) {
+									selected_analyst = analyst;
+									selected_analyst.busy = true;
 
 									ALERT("Analyst found!");
 									ALERT("Sending " + colour("Collector",PURPLE) + " the public encryption key!");
 
-									// Tell the analyst to verify with bank (if haven't already)
+									/* 4. Tell the analyst to verify with bank */
 									if(analyst.send(MessageFlag.VALIDATE_WITH_BANK + ""))
 										analyst.receive();
 
-									// Send the analysts public key
+									/* 5. Send the public key to the collector */
 									request = MessageFlag.PUB_KEY + ":" + analyst.public_key;
 									client.send(request);
 
-									// receive an encrypted eCent
+									/* 6. Receive the eCent and data from the collector */
 									encryptedECent = client.receive();
 									data = client.receive();
-
 									ALERT("received eCent and data! Forwarding to analyst.");
 										
-									// Prepare encrypted eCent with an analysis request
+									/* 7. Forward the eCent and data to the analyst */
 									request = MessageFlag.EXAM_REQ + ":" + encryptedECent;
-
-									// Send request and then send data
 									if(analyst.send(request) && analyst.send(data)) {
 										ALERT("Awaiting result...");
 
 										try {
+											/* 8. Receive the analysis */
 											result = analyst.receive();
 											ALERT("Analysis received!");
 
-										} catch (IOException disconnected) {
-											currentPool.remove(analyst);
-											warn = "Analyst disconnected during transaction!";
-											break;
-										}
+										} catch (IOException disconnected) { warn = "Analyst disconnected during transaction!"; break; }
 									} else {
-										currentPool.remove(analyst);
-										warn = "Analyst disconnected during transaction!";
+										warn = "Error contacting analyst!";
 										break;
 									}
-
+									
+									/* 9. Forward the analysis result */
 									if(client.isConnected() && client.send(result)) {
 										QUICK_SUCCESS("Result sent to collector!");
 										success = true;
@@ -210,16 +221,14 @@ public class Director extends Node {
 								}
 							}
 						}
-
 						if (!success) {
 							if(warn==null)
 								warn = "No analysts currently available!";
 							client.send("Warning: "+warn);
 							WARN("Warning: "+warn);
-						} 
+						}
 
 						break;
-
 
 					/*
 					 * No recognised message flag

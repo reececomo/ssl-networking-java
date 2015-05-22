@@ -5,16 +5,18 @@ import lib.*;
 import lib.Message.MessageFlag;
 
 /**
- * Analyst Class for analysing data
- * @author Jesse Fletcher, Caleb Fetzer, Reece Notargiacomo, Alexander Popoff-Asotoff
+ * Analyst node (for data analysis)
+ *
+ * @author Reece Notargiacomo, Alexander Popoff-Asotoff, Jesse Fletcher and Caleb Fetzer 
+ * @date 5th May 2015
+ *
  */
 
 public class Analyst extends Node {
 	
-	// The persistent connections
+	// The connections to bank and director
 	private SocketConnection bank, director;
-	
-	// Local keys
+	// Two-key authentication keys
 	private PrivateKey private_key;
 	private PublicKey public_key;
 
@@ -22,40 +24,114 @@ public class Analyst extends Node {
 	 * Main
 	 */
 	public static void main(String[] args) {
-		analyst_type = AnalystType.NAV; // "NAV" [navigator] or "ORC" [object response coordinator]
+		// Analyst type set to Navigator default
+		// Supported types are NAV (navigator) and ORC (obstruction response coordinator)
+		analyst_type = AnalystType.NAV;
+		sslcert = "cacerts.jks";
 
+		// Load the parameters
 		load_parameters(args);
 		new Analyst();
 	}
 	
 
 	public Analyst() {
+		// Declare the node type for Demo output
 		set_type("ANALYST-"+analyst_type.name());
 
-		lib.Security.declareClientCert("cacerts.jks");
+		// Declare the ssl truststore
+		lib.Security.declareClientCert(sslcert);
 		
 		// Connect to bank and director through abstract class
 		bank = new SocketConnection(bankIPAddress, bankPort);
 		director = new SocketConnection(directorIPAddress, dirPort);
 
-		// Generate key pair and register with bank
-		this.registerKeyPair();
+		// Generate authentication keypair and register with bank
+		generateAsymmetricKeys();
+		registerIdentityWith(bank);
 		
-		// Maintain a connection with the director
+		// Start a connection with the director
 		director.connect();
 
 		while(true) {
 			if(registerWithDirector())
 			{
 				ANNOUNCE("Registered!");
-				this.run();
+				this.runAnalyst();
 			} else {
+				// If connection is lost, retry connection.
 				ALERT_WITH_DELAY("Could not connect to Director...");
 				ALERT(colour("Retrying...",BLUE));
 				director.reconnect();
 			}
 		}
 		
+	}
+	
+	private void runAnalyst() {
+		while (true) {
+			// Receive infinite connections
+			ALERT("Awaiting request...");
+			try {
+				Message request = new Message(director.receive());
+				ALERT("Receiving request!");
+
+				switch(request.flag) {
+					/*
+					 *	Some node is trying to validate
+					 *		your public key encryption
+					 */
+					case VALIDATE_WITH_BANK:
+						director.send( ""+registerIdentityWith(bank) ); //returns "true" or "false"
+					break;
+				
+					/*
+					 *	Examination request protocol
+					 *	
+					 *	1. Receive encrypted eCent (and check for validity)
+					 *	2. Deposit eCent into bank
+					 *	3. Analyse data
+					 *	4. Send result
+					 *
+					 */
+				 	case EXAM_REQ:
+						/* 1. Receive encrypted eCent *
+						 *  (and check for validity)  */
+						String eCent = decrypt(request.data, private_key);
+						if (eCent == null)
+							ERROR("Error: Could not decrypt message! (" + eCent + ")");
+						else
+						{
+							// Successful decryption (and valid eCent)
+							ALERT("Depositing payment!");
+
+							/* 2. Deposit eCent into bank */
+							if (deposit(eCent)) {
+								ALERT("Payment deposited!");
+								ALERT_WITH_DELAY(colour("Analysing...",BLUE));
+
+								/* 3. Analyse data */
+								String result = analyse(director.receive());
+								SUCCESS("...complete!");
+								
+								/* 4. Send result */
+								director.send( result );
+								ALERT("Analysis result sent!\n");
+								
+							} else {
+								director.send("Error: Could not deposit eCent!");
+								ERROR("Error: Could not deposit eCent!\n");
+							}
+						}
+					break;
+				}
+
+			} catch (IOException err) {
+				ALERT("Error receiving message from Director");
+				break;
+			}
+			
+		}
 	}
 
 	// Send data type to Director
@@ -73,13 +149,15 @@ public class Analyst extends Node {
 		return response.equals("REGISTERED");
 	}
 	
-	private boolean depositMoney(String eCent) {
+	// Deposit eCent
+	private boolean deposit(String eCent) {
 		int attempt = 0;
 		String result = null;
 		String deposit_request = MessageFlag.DEPOSIT + ":" + eCent + ";" + StringFromKey(public_key);
 
 		bank.connect();
 
+		// Attempt 3 times before giving up
 		while(attempt < 3) {
 			ALERT("Sending eCent to the bank");
 			try {
@@ -87,7 +165,7 @@ public class Analyst extends Node {
 				break;
 			} catch (IOException err) {
 				ALERT_WITH_DELAY("Connection error! Retrying...");
-				registerKeyPair(); // re register keypair
+				registerIdentityWith(bank); // re register keypair
 				bank.reconnect();
 			}
 
@@ -101,58 +179,8 @@ public class Analyst extends Node {
 
 		return false;
 	}
-	
-	private void run() {
-		
-		while (true) {
-			ALERT("Awaiting request...");
-			try {
-				Message request = new Message(director.receive());
-				
-				ALERT("Receiving request!");
 
-				if(request.flag == MessageFlag.VALIDATE_WITH_BANK) {
-					director.send(""+registerKeyPair());
-				}
-				
-				if(request.flag == MessageFlag.EXAM_REQ) {
-					
-					// Decrypt eCent
-					String eCent = decrypt(request.data, private_key);
-
-					if (eCent == null) {
-						ALERT("Error: Could not decrypt message! (" + eCent + ")");
-
-					} else { // Successful decryption
-
-						ALERT("Depositing payment!");
-						if (depositMoney(eCent)) {
-							ALERT("Payment deposited!");
-							ALERT_WITH_DELAY(colour("Analysing...",BLUE));
-							String result = analyse(director.receive());
-							
-							SUCCESS("...complete!");
-							
-							director.send( result );
-							ALERT("Analysis result sent!\n");
-							
-						} else {
-							director.send("Error: Could not deposit eCent!");
-							ERROR("Error: Could not deposit eCent!\n");
-						}
-		
-					}
-				}
-
-			} catch (IOException err) {
-				ALERT("Error: Could not receive message from Director");
-				break;
-			}
-			
-		}
-	}
-
-	private void generateKeyPair() {
+	private void generateAsymmetricKeys() {
 		try {
 			KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
 			keyGen.initialize(2048);
@@ -165,38 +193,41 @@ public class Analyst extends Node {
 		}
 	}
 	
-	private boolean registerKeyPair() {
-		if(private_key == null)
-			generateKeyPair();
+	/*
+	 *	Register Keypair
+	 *
+	 */
+	private boolean registerIdentityWith(SocketConnection authorityNode) {
 
-		// Connect to bank
-		int attempt = 0;
-		bank.connect();
+		// Connect to authority
+		authorityNode.connect();
+		ANNOUNCE("Attempting to register identity with authority!");
 
-		while (attempt < 3) {
+		// Keep retrying if connection is broken
+		while (true) {
 			try {
-				ANNOUNCE("Attempting to register keypair with Bank!");
-				if(bank.send(MessageFlag.KEYPAIR + ":" + StringFromKey(public_key))) {
-					if(bank.receive().equals("REGISTERED")) {
-					ALERT("Registered with bank!");
-						bank.close();
+				// Send public key to authority node
+				if(authorityNode.send(MessageFlag.KEYPAIR + ":" + StringFromKey(public_key))) {
+					// If the response is "registered",
+					//	close connection and return true
+					if(authorityNode.receive().equals("REGISTERED")) {
+						ALERT("Registered with authority!");
+						authorityNode.close();
 						return true;
 					}
-				}
-				else {
-					ALERT_WITH_DELAY("Error connecting to bank... retrying...");
-					bank.reconnect();
+				} else {
+					ALERT_WITH_DELAY("Error connecting to authority... "+colour("retrying...",BLUE));
+					authorityNode.reconnect();
 				}
 
 			} catch (IOException e) {
-				ANNOUNCE("ERROR: Error registering keypair with bank!");
+				ANNOUNCE("ERROR: Error registering identity with authority!");
 				break;
 			}
-			attempt++;
 		}
 
 		// Close program
-		ERROR("Could not register with bank.");
+		ERROR("Could not register identity with authority. Shutting down...");
 		System.exit(-1);
 		return false;
 	}

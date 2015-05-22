@@ -16,37 +16,54 @@ import lib.Message.MessageFlag;
 
 public class Bank extends Node {
 
+	// SSL Server Socket
 	private static SSLServerSocket sslserversocket = null;
+
+	// Authenticating analysts
 	private static HashSet<String> valid_analysts = null;
 	private static HashSet<String> waiting_list = null;
 
+	// Physical copy of the banks money
 	private static ECentWallet bankStore;
 
 	/**
-	 * Bank
+	 * Bank Node
 	 */
 	public static void main(String[] args) throws IOException {
-		ECENTWALLET_FILE = "bank.wallet";
+
+		// Default parameters
 		port = 9999;
+		sslcert = "keystore.jks";
+		sslpassword = "cits3002";
+		ECENTWALLET_FILE = "bank.wallet";
+
+		// Load further parameters
 		load_parameters(args);
+
+		// Start server
 		new Bank( port );
 	}
 
 	public Bank(int portNo) throws IOException {
 		set_type("BANK");
-		lib.Security.declareServerCert("keystore.jks", "cits3002");
+
+		// Declare SSL certificate
+		lib.Security.declareServerCert(sslcert , sslpassword);
+
+		// Initiate the authentication lists...
 		valid_analysts = new HashSet<String>();
 		waiting_list = new HashSet<String>();
 
-		bankStore = new ECentWallet(ECENTWALLET_FILE);
+		// Load the banks money
+		bankStore = new ECentWallet( ECENTWALLET_FILE );
 
 		ANNOUNCE("Starting bank server");
 
 		if (startServer(portNo)) {
 			ANNOUNCE("Bank started on " + getIPAddress() + ":" + portNo);
 
+			// Accept infinite new connections
 			while (true) {
-				// Accept new connections
 				SSLSocket sslsocket = null;
 				try {
 					sslsocket = (SSLSocket) sslserversocket.accept();

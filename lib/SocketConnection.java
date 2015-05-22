@@ -18,12 +18,11 @@ import javax.net.ssl.SSLSocketFactory;
 /**
  * 
  * @author Reece Notargiacomo
- * @date 17th May
+ * @version 17th May
  *
  */
 
 public class SocketConnection {
-
 	// Role of
 	private enum Type {UNDECLARED, CLIENT, SERVER};
 	private Type type = Type.UNDECLARED;
