@@ -13,11 +13,36 @@
 
 ####0.2 Program options
 - **Compile** - <code>javac *.java</code>
-- **Director** - <code>java Director -port=3000 -sslcert=KeyStore.jks -sslpass=PassWord123 -demomode -nocolour</code>
-- **Bank** - <code>java Bank -bankvault=bank.wallet -port=3001 -sslcert=KeyStore.jks -sslpass=PassWord123 -demomode -nocolour</code>
-- **Analysts** - <code>java Analyst NAV (or ORC) -dir=localhost:9000 -bank=192.168.1.1 -sslcert -demomode -nocolour</code>
-- **Collector** - <code>java Collector -dir=localhost:9000 -bank=192.168.1.1 -sslcert -demomode -nocolour</code>
 
+- **<code>java Director</code>**
+    -  <code>-port=<*9998*></code>: The port to start the server on.
+    -  <code>-sslcert=<*keystore.jks*></code>: The SSL KeyStore file
+    -  <code>-sslpass=<*password*></code>: SSL KeyStore Password
+    -  <code>-demomode</code>: Start the program in demonstration mode (longer wait times)
+    -  <code>-nocolour</code>: Disable coloured output in the terminal
+    
+- **<code>java Bank</code>**
+    -  <code>-port=<*9999*></code>: The port to start the server on.
+    -  <code>-sslcert=<*keystore.jks*></code>: The SSL KeyStore file
+    -  <code>-sslpass=<*password*></code>: SSL KeyStore Password
+    -  <code>-bankstore=<*bank.wallet*></code>: eCent bank store file name
+    -  <code>-demomode</code>: Start the program in demonstration mode
+    -  <code>-nocolour</code>: Disable coloured output in the terminal
+
+- **<code>java Analyst NAV</code>** or **<code>java Analyst ORC</code>**
+    -  <code>-sslcert=<*cacerts.jks*></code>: The CA certificates SSL TrustStore file
+    -  <code>-dir=<*directorIP:port*></code>: IP Address of director (port optional)
+    -  <code>-bank=<*bankIP:port*></code>: IP Address of bank (port optional)
+    -  <code>-demomode</code>: Start the program in demonstration mode
+    -  <code>-nocolour</code>: Disable coloured output in the terminal
+- **<code>java Collector</code>**
+  -  <code>-sslcert=<*cacerts.jks*></code>: The CA certificates SSL TrustStore file
+  -  <code>-dir=<*directorIP:port*></code>: IP Address of director (port optional)
+  -  <code>-bank=<*bankIP:port*></code>: IP Address of bank (port optional)
+  -  <code>-wallet=<*collector.wallet*></code>: eCent wallet file name
+  -  <code>-demomode</code>: Start the program in demonstration mode
+  -  <code>-nocolour</code>: Disable coloured output in the terminal
+    
 ##1 - Core Components
 ###1.0 Description
 The project consists of four distinct pieces of software:
