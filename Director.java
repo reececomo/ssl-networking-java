@@ -163,7 +163,8 @@ public class Director extends Node {
 									ALERT("Analyst found!");
 									ALERT("Sending " + colour("Collector",PURPLE) + " the public encryption key!");
 
-									analyst.request(MessageFlag.VALIDATE_WITH_BANK + "");
+									if(analyst.send(MessageFlag.VALIDATE_WITH_BANK + ""))
+										analyst.receive();
 
 									// Send the analysts public key
 									request = MessageFlag.PUB_KEY + ":" + analyst.public_key;

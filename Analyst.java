@@ -131,13 +131,13 @@ public class Analyst extends Node {
 						ALERT("Depositing payment!");
 						if (depositMoney(eCent)) {
 							ALERT("Payment deposited!");
-							ALERT(colour("Analysing...",BLUE));
+							ALERT_WITH_DELAY(colour("Analysing...",BLUE));
 							String result = analyse(director.receive());
 							
-							ALERT_WITH_DELAY("...complete!");
+							SUCCESS("...complete!");
 							
 							director.send( result );
-							ALERT("Analysis sent!\n");
+							ALERT("Analysis result sent!\n");
 							
 						} else {
 							director.send("Error: Could not deposit eCent!");

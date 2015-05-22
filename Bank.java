@@ -181,7 +181,7 @@ public class Bank extends Node {
 								// Deposit eCent
 								bankStore.add(msg.data);
 
-								SUCCESS("eCent deposited!");
+								ANNOUNCE("Analyst: " + colour("eCent deposited!",GREEN));
 								client.send("SUCCESS");
 							} else {
 								ERROR("Could not cancel eCent deposit!");
