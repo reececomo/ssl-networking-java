@@ -22,9 +22,9 @@
 ###1.0 Description
 The project consists of four distinct pieces of software:
 - <i>**[The Analysts (1.1)](/Analyst.java)**: Nodes that receive raw data and return a result/action (for the price of 1 eCent).</i>
-- In this demonstration, there are two main analyst types:
-  - **[NAV] Navigator**: A node that assists the collector in traversing it's environment.
-  - **[ORC] Obstruction-Response Coordinator**: A node that assists the collector in dealing with unexpected obstructuions.
+  - In this demonstration, there are two main analyst types:
+    - **[NAV] Navigator**: A node that assists the collector in traversing it's environment.
+    - **[ORC] Obstruction-Response Coordinator**: A node that assists the collector in dealing with unexpected obstructuions.
 - <i>**[The Bank (1.2)](/Bank.java)**: A single node that dishes out money to the collectors, and stores accounts for the analysts.</i>
 - <i>**[The Collectors (1.3)](/Collector.java)**: Nodes that collect raw data and send it to the director for processing.</i>
   - **Autonomous Robot AI**: In this demonstration, the collector node is a "blind" robot that needs help traversing and analysing it's environment.
